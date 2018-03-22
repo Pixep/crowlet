@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
+	"io"
+	"io/ioutil"
 	"os"
-	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/yterajima/go-sitemap"
+	"github.com/tcnksm/go-httpstat"
 )
 
 var (
@@ -61,9 +63,10 @@ func start(c *cli.Context) error {
 
 	smap, err := sitemap.Get(c.Args().Get(0), nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
+	// each in sitemap
 	for _, URL := range smap.URL {
 		u, err := url.Parse(URL.Loc)
 		if err != nil {
@@ -74,23 +77,49 @@ func start(c *cli.Context) error {
 			u.Host = c.String("host")
 		}
 
-		log.Info("GET ", u.String())
-
-		body := strings.NewReader(``)
-		req, err := http.NewRequest("GET", u.String(), body)
+		// create a new http request
+		req, err := http.NewRequest("GET", u.String(), nil)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
+
+		// create a httpstat powered context
+		var result httpstat.Result
+		ctx := httpstat.WithHTTPStat(req.Context(), &result)
+		req = req.WithContext(ctx)
+
+		// add basic auth if user is provided
 		if len(c.String("user")) > 0 {
 			req.SetBasicAuth(c.String("user"), c.String("pass"))
 		}
 
-		resp, err := http.DefaultClient.Do(req)
+		// send request by default http client
+		client := http.DefaultClient
+		res, err := client.Do(req)
 		if err != nil {
-			fmt.Println(err)
+		    log.Fatal(err)
 		}
-		defer resp.Body.Close()
+		if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
+		    log.Fatal(err)
+		}
+		res.Body.Close()
+		end := time.Now()
 
+		log.WithFields(log.Fields{
+			"resp": res.StatusCode,
+			"server": int(result.ServerProcessing/time.Millisecond),
+			"content": int(result.ContentTransfer(time.Now())/time.Millisecond),
+		}).Info("GET: " + u.String())
+
+		log.WithFields(log.Fields{
+			"resp": res.StatusCode,
+			"dns": int(result.DNSLookup/time.Millisecond),
+			"tcpconn": int(result.TCPConnection/time.Millisecond),
+			"tls": int(result.TLSHandshake/time.Millisecond),
+			"server": int(result.ServerProcessing/time.Millisecond),
+			"content": int(result.ContentTransfer(time.Now())/time.Millisecond),
+			"close": end,
+		}).Debug("GET: " + u.String())
 	}
 
 	return nil
