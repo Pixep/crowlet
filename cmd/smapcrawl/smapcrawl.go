@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/url"
 	"os"
 
 	log "github.com/Sirupsen/logrus"
@@ -37,14 +36,17 @@ func main() {
 		cli.StringFlag{
 			Name:  "host",
 			Usage: "override the hostname used in sitemap urls",
+			EnvVar: "CRAWL_HOST",
 		},
 		cli.StringFlag{
 			Name:  "user,u",
 			Usage: "username for http basic authentication",
+			EnvVar: "CRAWL_HTTP_USER",
 		},
 		cli.StringFlag{
 			Name:  "pass,p",
 			Usage: "password for http basic authentication",
+			EnvVar: "CRAWL_HTTP_PASSWORD",
 		},
 		cli.BoolFlag{
 			Name:  "async,a",
@@ -52,7 +54,8 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:  "throttle,t",
-			Usage: "number of http requests to do at once",
+			Usage: "number of http requests to do at once in async mode",
+			EnvVar: "CRAWL_THROTTLE",
 			Value: 5,
 		},
 		cli.BoolFlag{
