@@ -20,8 +20,8 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		if err != nil {
 			panic(err)
 		}
-		if len(c.String("host")) > 0 {
-			u.Host = c.String("host")
+		if len(host) > 0 {
+			u.Host = host
 		}
 		urls = append(urls, u.String())
 	}
