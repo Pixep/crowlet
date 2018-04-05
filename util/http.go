@@ -26,9 +26,9 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 			client := &http.Client{}
 
 			resp, err := client.Do(req)
-			if (err == nil) {
-      	resp.Body.Close()
-      }
+			if err == nil {
+				resp.Body.Close()
+			}
 
 			ch <- &HttpResponse{url, resp, err}
 		}(url)
