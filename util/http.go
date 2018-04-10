@@ -58,21 +58,23 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 			}
 			end := time.Now()
 
-			log.WithFields(log.Fields{
-				"resp":    resp.StatusCode,
-				"server":  int(result.ServerProcessing / time.Millisecond),
-				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-			}).Info("GET: " + url)
-
-			log.WithFields(log.Fields{
-				"resp":    resp.StatusCode,
-				"dns":     int(result.DNSLookup / time.Millisecond),
-				"tcpconn": int(result.TCPConnection / time.Millisecond),
-				"tls":     int(result.TLSHandshake / time.Millisecond),
-				"server":  int(result.ServerProcessing / time.Millisecond),
-				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-				"close":   end,
-			}).Debug("GET: " + url)
+			if log.GetLevel() == log.DebugLevel {
+				log.WithFields(log.Fields{
+					"resp":    resp.StatusCode,
+					"dns":     int(result.DNSLookup / time.Millisecond),
+					"tcpconn": int(result.TCPConnection / time.Millisecond),
+					"tls":     int(result.TLSHandshake / time.Millisecond),
+					"server":  int(result.ServerProcessing / time.Millisecond),
+					"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+					"close":   end,
+				}).Debug("GET: " + url)
+			} else {
+				log.WithFields(log.Fields{
+					"resp":    resp.StatusCode,
+					"server":  int(result.ServerProcessing / time.Millisecond),
+					"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+				}).Info("GET: " + url)
+			}
 
 			ch <- &HttpResponse{url, resp, err}
 		}(url)
