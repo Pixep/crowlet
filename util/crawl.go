@@ -84,7 +84,9 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		log.Debug("batch ", low, ":", high, " sending")
 		for _ = range urls[low:high] {
 			result := <-results
-			log.Debug(result.Url, result)
+
+			// look at removal once true async is done
+			//log.Debug(result.Url, result)
 
 			// stats collection
 			if result.Response.StatusCode == 200 {
@@ -95,6 +97,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 			}
 		}
 		log.Debug("batch ", low, ":", high, " done")
+		log.Debug("sleep 1")
 		time.Sleep(1 * time.Second)
 	}
 }
