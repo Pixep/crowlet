@@ -1,0 +1,82 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.8
+    working_directory: /go/src/github.com/flaccid/sitemap-crawler
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: curl https://glide.sh/get | sh && glide install
+      - run:
+          name: Build linux static binaries
+          command: |
+            go build -o bin/smapcrawl-linux-amd64 cmd/smapcrawl/smapcrawl.go
+            go build -o bin/smapcrawl-linux-amd64 cmd/smapcrawl/smapcrawl.go
+          environment:
+            CGO_ENABLED: 0
+            GOOS: linux
+            GOARCH: amd64
+      - run:
+          name: Build macos static binaries
+          command: |
+            go build -o bin/smapcrawl-darwin-amd64 cmd/smapcrawl/smapcrawl.go
+            go build -o bin/smapcrawl-darwin-amd64 cmd/smapcrawl/smapcrawl.go
+          environment:
+            CGO_ENABLED: 0
+            GOOS: darwin
+            GOARCH: amd64
+      - run:
+          name: Archive binaries
+          command: |
+            pushd bin >/dev/null
+              for f in *; do
+                [ -x "$f" ] && tar cvzf "$f.tar.gz" "$f"
+              done
+            popd >/dev/null
+      - run:
+          name: Release to GitHub
+          command: |
+            go get github.com/aktau/github-release
+
+            echo 'current release info:'
+            github-release info -u flaccid -r sitemap-crawler || true
+
+            # echo 're-tagging v0.0.0-dev'
+            # git push --delete origin v0.0.0-dev || true
+            git tag --force v0.0.0-dev
+            # git push --tags
+
+            echo 'delete the devel release'
+            github-release delete \
+              --user flaccid \
+              --repo sitemap-crawler \
+              --tag v0.0.0-dev || true
+
+            echo 'cutting new devel release'
+            github-release release \
+              --user flaccid \
+              --repo sitemap-crawler \
+              --tag v0.0.0-dev \
+              --name devel \
+              --description 'This is a rolling release of current master.' \
+              --pre-release
+
+            echo 'uploading binaries to release'
+            github-release upload \
+              --user flaccid \
+              --repo sitemap-crawler \
+              --tag v0.0.0-dev \
+              --name smapcrawl-darwin-amd64.tar.gz \
+              --file bin/smapcrawl-darwin-amd64.tar.gz
+            github-release upload \
+              --user flaccid \
+              --repo sitemap-crawler \
+              --tag v0.0.0-dev \
+              --name smapcrawl-linux-amd64.tar.gz \
+              --file bin/smapcrawl-linux-amd64.tar.gz
+
+            echo 'new release info:'
+            github-release info -u flaccid -r sitemap-crawler
