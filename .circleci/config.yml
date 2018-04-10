@@ -82,9 +82,6 @@ jobs:
   build-docker:
     docker:
       - image: docker
-    branches:
-      only:
-        - master
     steps:
       - checkout
       - setup_remote_docker
