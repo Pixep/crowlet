@@ -80,3 +80,23 @@ jobs:
 
             echo 'new release info:'
             github-release info -u flaccid -r sitemap-crawler
+
+  build-docker:
+    docker:
+      - image: docker
+    branches:
+      only:
+        - master
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker info
+      - run:
+          name: Build docker image
+          command: |
+            docker build -t flaccid/sitemap-crawler .
+      - deploy:
+          name: Push docker image to Docker Hub
+          command: |
+            docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
+            docker push flaccid/sitemap-crawler:latest
