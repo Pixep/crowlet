@@ -54,7 +54,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		log.Debug("batch ", low, ":", high, " sending")
 		for _ = range urls[low:high] {
 			result := <-results
-			log.Info(result.Url, result)
+			log.Debug(result.Url, result)
 		}
 		log.Debug("batch ", low, ":", high, " done")
 		time.Sleep(1 * time.Second)

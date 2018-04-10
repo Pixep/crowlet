@@ -88,7 +88,7 @@ func start(c *cli.Context) error {
 	log.Info(len(smap.URL), " urls to crawl")
 
 	if c.Bool("async") {
-		log.Debug("async mode enabled")
+		log.Info("async mode enabled")
 		util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
 	} else {
 		util.SyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
