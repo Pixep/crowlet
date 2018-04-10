@@ -69,6 +69,11 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		}
 		high := (low + throttle) - 1
 
+		// do not let high exceed total (last batch/upper limit)
+		if high > numUrls {
+			high = numUrls-1
+		}
+
 		log.WithFields(log.Fields{
 			"iteration": i,
 			"low":       low,
