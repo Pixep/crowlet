@@ -8,9 +8,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
-          command: curl https://glide.sh/get | sh && glide install
-      - run:
           name: Build linux static binaries
           command: |
             go build -o bin/smapcrawl-linux-amd64 cmd/smapcrawl/smapcrawl.go
