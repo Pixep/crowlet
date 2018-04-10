@@ -1,5 +1,4 @@
 version: 2
-
 jobs:
   build:
     docker:
@@ -80,7 +79,6 @@ jobs:
 
             echo 'new release info:'
             github-release info -u flaccid -r sitemap-crawler
-
   build-docker:
     docker:
       - image: docker
@@ -100,3 +98,9 @@ jobs:
           command: |
             docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
             docker push flaccid/sitemap-crawler:latest
+workflows:
+  version: 2
+  build_and_build_docker:
+    jobs:
+      - build
+      - build-docker
