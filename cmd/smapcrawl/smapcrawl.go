@@ -2,8 +2,6 @@ package main
 
 import (
 	"os"
-	"os/signal"
-	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/flaccid/sitemap-crawler/util"
@@ -88,14 +86,6 @@ func start(c *cli.Context) error {
 		log.Fatal(err)
 	}
 	log.Info(len(smap.URL), " urls to crawl")
-
-	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-ch
-		log.Info("cleanup")
-		os.Exit(1)
-	}()
 
 	for {
 		if c.Bool("async") {

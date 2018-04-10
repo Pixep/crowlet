@@ -6,13 +6,38 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/tcnksm/go-httpstat"
 	"github.com/yterajima/go-sitemap"
 )
 
+type CrawlStats struct {
+	Resp200	int
+	RespNon200	int
+}
+
+func logTotals(stats CrawlStats) {
+	log.Info("total 200 responses: ", stats.Resp200)
+	log.Info("total non-200 responses: ", stats.RespNon200)
+}
+
 func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
+	var stats CrawlStats
+
+	// support ctrl-c
+	ch := make(chan os.Signal, 2)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ch
+		log.Info("sigterm triggered")
+		logTotals(stats)
+		os.Exit(1)
+	}()
+
 	// place all the urls into an array
 	var urls []string
 	for _, URL := range smap.URL {
@@ -55,6 +80,14 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		for _ = range urls[low:high] {
 			result := <-results
 			log.Debug(result.Url, result)
+
+			// stats collection
+			if result.Response.StatusCode == 200 {
+				stats.Resp200++
+			}
+			if result.Response.StatusCode != 200 {
+				stats.RespNon200++
+			}
 		}
 		log.Debug("batch ", low, ":", high, " done")
 		time.Sleep(1 * time.Second)
@@ -62,6 +95,18 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 }
 
 func SyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
+	var stats CrawlStats
+
+	// support ctrl-c
+	ch := make(chan os.Signal, 2)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ch
+		log.Info("sigterm triggered")
+		logTotals(stats)
+		os.Exit(1)
+	}()
+
 	// each in sitemap
 	for _, URL := range smap.URL {
 		u, err := url.Parse(URL.Loc)
@@ -91,30 +136,41 @@ func SyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pas
 
 		// send request by default http client
 		client := http.DefaultClient
-		res, err := client.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
+		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
 			log.Fatal(err)
 		}
-		res.Body.Close()
+		resp.Body.Close()
 		end := time.Now()
 
-		log.WithFields(log.Fields{
-			"resp":    res.StatusCode,
-			"server":  int(result.ServerProcessing / time.Millisecond),
-			"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-		}).Info("GET: " + u.String())
+		// stats collection
+		if resp.StatusCode == 200 {
+			stats.Resp200++
+		}
+		if resp.StatusCode != 200 {
+			stats.RespNon200++
+		}
 
-		log.WithFields(log.Fields{
-			"resp":    res.StatusCode,
-			"dns":     int(result.DNSLookup / time.Millisecond),
-			"tcpconn": int(result.TCPConnection / time.Millisecond),
-			"tls":     int(result.TLSHandshake / time.Millisecond),
-			"server":  int(result.ServerProcessing / time.Millisecond),
-			"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-			"close":   end,
-		}).Debug("GET: " + u.String())
+		// logging
+		if log.GetLevel() == log.DebugLevel {
+			log.WithFields(log.Fields{
+				"resp":    resp.StatusCode,
+				"dns":     int(result.DNSLookup / time.Millisecond),
+				"tcpconn": int(result.TCPConnection / time.Millisecond),
+				"tls":     int(result.TLSHandshake / time.Millisecond),
+				"server":  int(result.ServerProcessing / time.Millisecond),
+				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+				"close":   end,
+			}).Debug("GET: " + u.String())
+		} else {
+			log.WithFields(log.Fields{
+				"resp":    resp.StatusCode,
+				"server":  int(result.ServerProcessing / time.Millisecond),
+				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+			}).Info("GET: " + u.String())
+		}
 	}
 }
