@@ -25,18 +25,22 @@ func logTotals(stats CrawlStats) {
 	log.Info("total non-200 responses: ", stats.RespNon200)
 }
 
-func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
-	var stats CrawlStats
-
+func addInterruptHandlers(stats *CrawlStats) {
 	// support ctrl-c
 	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-ch
 		log.Info("sigterm triggered")
-		logTotals(stats)
+		logTotals(*stats)
 		os.Exit(1)
 	}()
+}
+
+func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
+	var stats CrawlStats
+
+	addInterruptHandlers(&stats)
 
 	// place all the urls into an array
 	var urls []string
@@ -105,15 +109,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 func SyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
 	var stats CrawlStats
 
-	// support ctrl-c
-	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-ch
-		log.Info("sigterm triggered")
-		logTotals(stats)
-		os.Exit(1)
-	}()
+	addInterruptHandlers(&stats)
 
 	// each in sitemap
 	for _, URL := range smap.URL {
