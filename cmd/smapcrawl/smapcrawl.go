@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/flaccid/sitemap-crawler/util"
@@ -61,6 +62,12 @@ func main() {
 			Usage: "reads the sitemap once keep crawling all urls until stopped",
 		},
 		cli.IntFlag{
+			Name:   "wait-interval,w",
+			Usage:  "wait interval in seconds between sitemap crawling iterations",
+			EnvVar: "CRAWL_WAIT_INTERVAL",
+			Value:  0,
+		},
+		cli.IntFlag{
 			Name:   "throttle,t",
 			Usage:  "number of http requests to do at once in async mode",
 			EnvVar: "CRAWL_THROTTLE",
@@ -92,6 +99,10 @@ func start(c *cli.Context) error {
 	log.Info(len(smap.URL), " urls to crawl")
 
 	for i := 0; i < 1 || c.Bool("forever"); i++ {
+		if i != 0 {
+			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
+		}
+
 		if c.Bool("async") {
 			log.Info("async mode enabled")
 			util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
