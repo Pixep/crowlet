@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/Pixep/sitemap-crawler/util"
 	log "github.com/Sirupsen/logrus"
-	"github.com/flaccid/sitemap-crawler/util"
 	"github.com/urfave/cli"
 	"github.com/yterajima/go-sitemap"
 )
