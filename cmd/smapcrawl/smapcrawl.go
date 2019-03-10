@@ -107,7 +107,7 @@ func start(c *cli.Context) error {
 			log.Info("async mode enabled")
 			util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
 		} else {
-			util.SyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+			util.SyncCrawl(smap, c.String("host"), c.String("user"), c.String("pass"))
 		}
 	}
 

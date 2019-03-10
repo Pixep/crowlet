@@ -113,7 +113,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 // SyncCrawl crawls synchronously URLs from a sitemap and prints related
 // information. Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
-func SyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
+func SyncCrawl(smap sitemap.Sitemap, host string, user string, pass string) {
 	var stats CrawlStats
 
 	addInterruptHandlers(&stats)
