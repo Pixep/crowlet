@@ -56,6 +56,10 @@ func main() {
 			Name:  "async,a",
 			Usage: "do http requests in asynchronous mode",
 		},
+		cli.BoolFlag{
+			Name:  "forever,f",
+			Usage: "reads the sitemap once keep crawling all urls until stopped",
+		},
 		cli.IntFlag{
 			Name:   "throttle,t",
 			Usage:  "number of http requests to do at once in async mode",
@@ -87,7 +91,7 @@ func start(c *cli.Context) error {
 	}
 	log.Info(len(smap.URL), " urls to crawl")
 
-	for {
+	for i := 0; i < 1 || c.Bool("forever"); i++ {
 		if c.Bool("async") {
 			log.Info("async mode enabled")
 			util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
