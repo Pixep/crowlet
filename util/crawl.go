@@ -5,10 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/tcnksm/go-httpstat"
@@ -16,8 +16,8 @@ import (
 )
 
 type CrawlStats struct {
-	Resp200	int
-	RespNon200	int
+	Resp200    int
+	RespNon200 int
 }
 
 func logTotals(stats CrawlStats) {
@@ -71,7 +71,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 
 		// do not let high exceed total (last batch/upper limit)
 		if high > numUrls {
-			high = numUrls-1
+			high = numUrls - 1
 		}
 
 		log.WithFields(log.Fields{
