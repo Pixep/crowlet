@@ -2,4 +2,4 @@
 
 ## Current Limitations
 
-- only works with sitemap files that have <urlset> and not <sitemapindex> entries
+- only works with sitemap files that have `<urlset>` and not `<sitemapindex>` entries
