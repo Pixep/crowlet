@@ -54,10 +54,6 @@ func main() {
 			EnvVar: "CRAWL_HTTP_PASSWORD",
 		},
 		cli.BoolFlag{
-			Name:  "async,a",
-			Usage: "do http requests in asynchronous mode",
-		},
-		cli.BoolFlag{
 			Name:  "forever,f",
 			Usage: "reads the sitemap once keep crawling all urls until stopped",
 		},
@@ -69,7 +65,7 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:   "throttle,t",
-			Usage:  "number of http requests to do at once in async mode",
+			Usage:  "number of http requests to do at once",
 			EnvVar: "CRAWL_THROTTLE",
 			Value:  5,
 		},
@@ -103,12 +99,7 @@ func start(c *cli.Context) error {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		if c.Bool("async") {
-			log.Info("async mode enabled")
-			util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
-		} else {
-			util.SyncCrawl(smap, c.String("host"), c.String("user"), c.String("pass"))
-		}
+		util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
 	}
 
 	return nil

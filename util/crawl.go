@@ -1,9 +1,6 @@
 package util
 
 import (
-	"io"
-	"io/ioutil"
-	"net/http"
 	"math"
 	"net/url"
 	"os"
@@ -12,7 +9,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/tcnksm/go-httpstat"
 	"github.com/yterajima/go-sitemap"
 )
 
@@ -110,81 +106,5 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		log.Debug("batch ", low, ":", high, " done")
 		log.Debug("sleep 1")
 		time.Sleep(1 * time.Second)
-	}
-}
-
-// SyncCrawl crawls synchronously URLs from a sitemap and prints related
-// information. Host overrides the hostname used in the sitemap if provided,
-// and user/pass are optional basic auth credentials
-func SyncCrawl(smap sitemap.Sitemap, host string, user string, pass string) {
-	var stats CrawlStats
-
-	addInterruptHandlers(&stats)
-
-	// each in sitemap
-	for _, URL := range smap.URL {
-		u, err := url.Parse(URL.Loc)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(host) > 0 {
-			u.Host = host
-		}
-
-		// create a new http request
-		req, err := http.NewRequest("GET", u.String(), nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// create a httpstat powered context
-		var result httpstat.Result
-		ctx := httpstat.WithHTTPStat(req.Context(), &result)
-		req = req.WithContext(ctx)
-
-		// add basic auth if user is provided
-		if len(user) > 0 {
-			req.SetBasicAuth(user, pass)
-		}
-
-		// send request by default http client
-		client := http.DefaultClient
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-			log.Fatal(err)
-		}
-		resp.Body.Close()
-		end := time.Now()
-
-		// stats collection
-		if resp.StatusCode == 200 {
-			stats.Resp200++
-		}
-		if resp.StatusCode != 200 {
-			stats.RespNon200++
-		}
-
-		// logging
-		if log.GetLevel() == log.DebugLevel {
-			log.WithFields(log.Fields{
-				"resp":    resp.StatusCode,
-				"dns":     int(result.DNSLookup / time.Millisecond),
-				"tcpconn": int(result.TCPConnection / time.Millisecond),
-				"tls":     int(result.TLSHandshake / time.Millisecond),
-				"server":  int(result.ServerProcessing / time.Millisecond),
-				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-				"close":   end,
-			}).Debug("GET: " + u.String())
-		} else {
-			log.WithFields(log.Fields{
-				"resp":    resp.StatusCode,
-				"server":  int(result.ServerProcessing / time.Millisecond),
-				"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
-			}).Info("GET: " + u.String())
-		}
 	}
 }
