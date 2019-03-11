@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/yterajima/go-sitemap"
@@ -104,7 +103,5 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 			}
 		}
 		log.Debug("batch ", low, ":", high, " done")
-		log.Debug("sleep 1")
-		time.Sleep(1 * time.Second)
 	}
 }
