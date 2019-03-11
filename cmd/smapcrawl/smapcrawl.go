@@ -99,7 +99,12 @@ func start(c *cli.Context) error {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+		stats, stop := util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+		util.LogTotals(stats)
+
+		if stop {
+			break
+		}
 	}
 
 	return nil

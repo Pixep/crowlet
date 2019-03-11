@@ -21,15 +21,15 @@ func logTotals(stats CrawlStats) {
 	log.Info("total non-200 responses: ", stats.RespNon200)
 }
 
-func addInterruptHandlers(stats *CrawlStats) {
-	// support ctrl-c
-	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+func addInterruptHandlers(stop chan struct{}) {
+	osSignal := make(chan os.Signal)
+	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(osSignal, os.Interrupt, syscall.SIGINT)
+
 	go func() {
-		<-ch
-		log.Info("sigterm triggered")
-		logTotals(*stats)
-		os.Exit(1)
+		<-osSignal
+		log.Info("Signal received, stopping...")
+		stop <- struct{}{}
 	}()
 }
 
@@ -37,15 +37,15 @@ func addInterruptHandlers(stats *CrawlStats) {
 // information. Throttle is the maximum number of parallel HTTP requests.
 // Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
-func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
-	var stats CrawlStats
-
+func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
+	user string, pass string) (stats CrawlStats, stopped bool) {
 	if throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		throttle = 1
 	}
 
-	addInterruptHandlers(&stats)
+	stop := make(chan struct{})
+	addInterruptHandlers(stop)
 
 	// place all the urls into an array
 	var urls []string
@@ -89,10 +89,13 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		results := AsyncHttpGets(urlRange, user, pass)
 		log.Debug("batch ", low, ":", high, " sending")
 		for range urlRange {
-			result := <-results
-
-			// look at removal once true async is done
-			//log.Debug(result.Url, result)
+			var result *HttpResponse
+			select {
+			case result = <-results:
+			case <-stop:
+				stopped = true
+				return
+			}
 
 			// stats collection
 			if result.Response.StatusCode == 200 {
@@ -104,4 +107,6 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 		}
 		log.Debug("batch ", low, ":", high, " done")
 	}
+
+	return
 }
