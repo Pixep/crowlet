@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"math"
 	"net/url"
 	"os"
 	"os/signal"
@@ -60,7 +61,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 	}
 
 	numUrls := len(urls)
-	numIter := numUrls / throttle
+	numIter := int(math.Ceil(float64(numUrls) / float64(throttle)))
 
 	log.WithFields(log.Fields{
 		"url count":  numUrls,
@@ -69,12 +70,8 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 	}).Debug("loop summary")
 
 	var low int
-	for i := 0; i <= numIter; i++ {
-		if i == 0 {
-			low = 0
-		} else {
-			low = i * throttle
-		}
+	for i := 0; i < numIter; i++ {
+		low = i * throttle
 		high := (low + throttle) - 1
 
 		// do not let high exceed total (last batch/upper limit)
@@ -88,9 +85,10 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pa
 			"high":      high,
 		}).Debug("loop position")
 
-		results := AsyncHttpGets(urls[low:high], user, pass)
+		urlRange := urls[low : high+1]
+		results := AsyncHttpGets(urlRange, user, pass)
 		log.Debug("batch ", low, ":", high, " sending")
-		for _ = range urls[low:high] {
+		for range urlRange {
 			result := <-results
 
 			// look at removal once true async is done
