@@ -16,7 +16,8 @@ type CrawlStats struct {
 	RespNon200 int
 }
 
-func logTotals(stats CrawlStats) {
+// LogTotals prints a summary of HTTP response codes
+func LogTotals(stats CrawlStats) {
 	log.Info("total 200 responses: ", stats.Resp200)
 	log.Info("total non-200 responses: ", stats.RespNon200)
 }
