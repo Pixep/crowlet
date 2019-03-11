@@ -45,6 +45,11 @@ func addInterruptHandlers(stats *CrawlStats) {
 func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string, user string, pass string) {
 	var stats CrawlStats
 
+	if throttle <= 0 {
+		log.Warn("Invalid throttle value, defaulting to 1.")
+		throttle = 1
+	}
+
 	addInterruptHandlers(&stats)
 
 	// place all the urls into an array
