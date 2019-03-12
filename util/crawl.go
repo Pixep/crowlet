@@ -12,14 +12,20 @@ import (
 )
 
 type CrawlStats struct {
-	Resp200    int
-	RespNon200 int
+	Total       int
+	StatusCodes map[int]int
 }
 
 // LogTotals prints a summary of HTTP response codes
 func LogTotals(stats CrawlStats) {
-	log.Info("total 200 responses: ", stats.Resp200)
-	log.Info("total non-200 responses: ", stats.RespNon200)
+	log.Info("---------------")
+	log.Info("Summary:")
+	log.Info("  HTTP Status    Count")
+	for code, count := range stats.StatusCodes {
+		log.Info("    ", code, "          ", count)
+	}
+	log.Info("  Total          ", stats.Total)
+	log.Info("---------------")
 }
 
 func addInterruptHandlers(stop chan struct{}) {
@@ -44,6 +50,8 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		throttle = 1
 	}
+
+	stats.StatusCodes = make(map[int]int)
 
 	stop := make(chan struct{})
 	addInterruptHandlers(stop)
@@ -98,13 +106,8 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 				return
 			}
 
-			// stats collection
-			if result.Response.StatusCode == 200 {
-				stats.Resp200++
-			}
-			if result.Response.StatusCode != 200 {
-				stats.RespNon200++
-			}
+			stats.Total++
+			stats.StatusCodes[result.Response.StatusCode]++
 		}
 		log.Debug("batch ", low, ":", high, " done")
 	}
