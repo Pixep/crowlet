@@ -72,7 +72,7 @@ func main() {
 			Value:  5,
 		},
 		cli.BoolFlag{
-			Name:  "quiet,q",
+			Name:  "quiet,silent,q",
 			Usage: "suppresses all normal output",
 		},
 		cli.StringFlag{
