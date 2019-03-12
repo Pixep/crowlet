@@ -18,8 +18,8 @@ type CrawlStats struct {
 	StatusCodes map[int]int
 }
 
-// LogTotals prints a summary of HTTP response codes
-func LogTotals(stats CrawlStats) {
+// PrintSummary prints a summary of HTTP response codes
+func PrintSummary(stats CrawlStats) {
 	log.Info("---------------")
 	log.Info("Summary:")
 	log.Info("  HTTP Status    Count")

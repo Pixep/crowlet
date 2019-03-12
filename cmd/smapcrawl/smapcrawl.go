@@ -100,7 +100,7 @@ func start(c *cli.Context) error {
 		}
 
 		stats, stop := util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
-		util.LogTotals(stats)
+		util.PrintSummary(stats)
 
 		if stop {
 			break
