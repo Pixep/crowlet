@@ -94,13 +94,21 @@ func start(c *cli.Context) error {
 	}
 	log.Info(len(smap.URL), " urls to crawl")
 
+	var stats util.CrawlStats
 	for i := 0; i < 1 || c.Bool("forever"); i++ {
 		if i != 0 {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		stats, stop := util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+		var stop bool
+		var err error
+		stats, stop, err = util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+
 		util.PrintSummary(stats)
+
+		if err != nil {
+			log.Warn(err)
+		}
 
 		if stop {
 			break

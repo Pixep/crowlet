@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"math"
 	"net/url"
 	"os"
@@ -47,13 +48,20 @@ func addInterruptHandlers(stop chan struct{}) {
 // Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
 func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
-	user string, pass string) (stats CrawlStats, stopped bool) {
+	user string, pass string) (stats CrawlStats, stopped bool, err error) {
+	stats.StatusCodes = make(map[int]int)
+	defer func() {
+		if stats.Total == 0 {
+			err = errors.New("No URL crawled")
+		} else if stats.Total != stats.StatusCodes[200] {
+			err = errors.New("Some URLs had a different status code than 200")
+		}
+	}()
+
 	if throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		throttle = 1
 	}
-
-	stats.StatusCodes = make(map[int]int)
 
 	stop := make(chan struct{})
 	addInterruptHandlers(stop)
