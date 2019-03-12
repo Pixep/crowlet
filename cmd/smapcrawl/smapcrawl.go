@@ -17,6 +17,8 @@ var (
 func beforeApp(c *cli.Context) error {
 	if c.GlobalBool("debug") {
 		log.SetLevel(log.DebugLevel)
+	} else if c.GlobalBool("quiet") {
+		log.SetLevel(log.FatalLevel)
 	}
 
 	if c.NArg() < 1 {
@@ -68,6 +70,10 @@ func main() {
 			Usage:  "number of http requests to do at once",
 			EnvVar: "CRAWL_THROTTLE",
 			Value:  5,
+		},
+		cli.BoolFlag{
+			Name:  "quiet,q",
+			Usage: "suppresses all normal output",
 		},
 		cli.StringFlag{
 			Name:  "pre-cmd",
