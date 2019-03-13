@@ -10,6 +10,9 @@ WORKING_DIR := $(shell pwd)
 
 .PHONY: build push
 
+install:: ## Build and install smapcrawl locally
+		@cd cmd/smapcrawl/ && go install .
+
 release:: build push ## Builds and pushes the docker image to the registry
 
 push:: ## Pushes the docker image to the registry
