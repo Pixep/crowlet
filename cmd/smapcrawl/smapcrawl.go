@@ -88,17 +88,19 @@ func main() {
 			Usage: "run in debug mode",
 		},
 	}
+
 	app.Run(os.Args)
 }
 
 func start(c *cli.Context) error {
-	log.Info("starting up")
+	sitemapURL := c.Args().Get(0)
+	log.Info("Crawling ", sitemapURL)
 
-	smap, err := sitemap.Get(c.Args().Get(0), nil)
+	smap, err := sitemap.Get(sitemapURL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info(len(smap.URL), " urls to crawl")
+	log.Info("Found ", len(smap.URL), " URL(s)")
 
 	var stats util.CrawlStats
 	for i := 0; i < 1 || c.Bool("forever"); i++ {
