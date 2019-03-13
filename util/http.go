@@ -52,23 +52,24 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 			}()
 
 			end := time.Now()
+			total := int(result.Total(end).Round(time.Millisecond) / time.Millisecond)
 
 			if log.GetLevel() == log.DebugLevel {
 				log.WithFields(log.Fields{
-					"resp":    resp.StatusCode,
+					"status":  resp.StatusCode,
 					"dns":     int(result.DNSLookup / time.Millisecond),
 					"tcpconn": int(result.TCPConnection / time.Millisecond),
 					"tls":     int(result.TLSHandshake / time.Millisecond),
 					"server":  int(result.ServerProcessing / time.Millisecond),
 					"content": int(result.ContentTransfer(end) / time.Millisecond),
+					"time":    total,
 					"close":   end,
-				}).Debug("GET: " + url)
+				}).Debug("URL: " + url)
 			} else {
 				log.WithFields(log.Fields{
-					"resp":    resp.StatusCode,
-					"server":  int(result.ServerProcessing / time.Millisecond),
-					"content": int(result.ContentTransfer(end) / time.Millisecond),
-				}).Info("GET: " + url)
+					"status":     resp.StatusCode,
+					"total-time": total,
+				}).Info("URL: " + url)
 			}
 
 			ch <- &HttpResponse{url, resp, result, end, err}
