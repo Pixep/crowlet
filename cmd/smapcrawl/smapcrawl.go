@@ -40,6 +40,8 @@ func afterApp(c *cli.Context) error {
 	return nil
 }
 
+var exitCode int
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "smapcrawl"
@@ -105,6 +107,7 @@ func main() {
 	}
 
 	app.Run(os.Args)
+	os.Exit(exitCode)
 }
 
 func start(c *cli.Context) error {
@@ -139,7 +142,7 @@ func start(c *cli.Context) error {
 	}
 
 	if stats.Total != stats.StatusCodes[200] {
-		os.Exit(c.Int("non-200-error"))
+		exitCode = c.Int("non-200-error")
 	}
 
 	return nil
