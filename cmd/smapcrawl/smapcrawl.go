@@ -75,6 +75,12 @@ func main() {
 			Name:  "quiet,silent,q",
 			Usage: "suppresses all normal output",
 		},
+		cli.IntFlag{
+			Name: "non-200-error,e",
+			Usage: "return with the exit code specified if any non-200" +
+				" response if encountered",
+			Value: 1,
+		},
 		cli.StringFlag{
 			Name:  "pre-cmd",
 			Usage: "command(s) to run before starting crawler",
@@ -121,6 +127,10 @@ func start(c *cli.Context) error {
 		if stop {
 			break
 		}
+	}
+
+	if stats.Total != stats.StatusCodes[200] {
+		os.Exit(c.Int("non-200-error"))
 	}
 
 	return nil
