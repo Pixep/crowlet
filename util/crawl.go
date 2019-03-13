@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/yterajima/go-sitemap"
@@ -15,8 +16,9 @@ import (
 // CrawlStats stores crawling status codes and
 // total number of crawled URLs
 type CrawlStats struct {
-	Total       int
-	StatusCodes map[int]int
+	Total          int
+	StatusCodes    map[int]int
+	Average200Time time.Duration
 }
 
 // PrintSummary prints a summary of HTTP response codes
@@ -28,6 +30,9 @@ func PrintSummary(stats CrawlStats) {
 		log.Info("    ", code, "          ", count)
 	}
 	log.Info("  Total          ", stats.Total)
+	log.Info("")
+	log.Info("  Avg. time      ", stats.Average200Time.Round(time.Millisecond))
+	log.Info("  for 200")
 	log.Info("---------------")
 }
 
@@ -89,6 +94,13 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 	}).Debug("loop summary")
 
 	var low int
+	var serverTimeTotal time.Duration
+	defer func() {
+		total200 := stats.StatusCodes[200]
+		if total200 > 0 {
+			stats.Average200Time = serverTimeTotal / time.Duration(total200)
+		}
+	}()
 	for i := 0; i < numIter; i++ {
 		low = i * throttle
 		high := (low + throttle) - 1
@@ -118,6 +130,7 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 
 			stats.Total++
 			stats.StatusCodes[result.Response.StatusCode]++
+			serverTimeTotal += result.Result.Total(result.EndTime)
 		}
 		log.Debug("batch ", low, ":", high, " done")
 	}

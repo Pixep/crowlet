@@ -6,13 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tcnksm/go-httpstat"
 	log "github.com/Sirupsen/logrus"
+	"github.com/tcnksm/go-httpstat"
 )
 
 type HttpResponse struct {
-	Url      string
+	URL      string
 	Response *http.Response
+	Result   httpstat.Result
+	EndTime  time.Time
 	Err      error
 }
 
@@ -65,18 +67,18 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 					"tcpconn": int(result.TCPConnection / time.Millisecond),
 					"tls":     int(result.TLSHandshake / time.Millisecond),
 					"server":  int(result.ServerProcessing / time.Millisecond),
-					"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+					"content": int(result.ContentTransfer(end) / time.Millisecond),
 					"close":   end,
 				}).Debug("GET: " + url)
 			} else {
 				log.WithFields(log.Fields{
 					"resp":    resp.StatusCode,
 					"server":  int(result.ServerProcessing / time.Millisecond),
-					"content": int(result.ContentTransfer(time.Now()) / time.Millisecond),
+					"content": int(result.ContentTransfer(end) / time.Millisecond),
 				}).Info("GET: " + url)
 			}
 
-			ch <- &HttpResponse{url, resp, err}
+			ch <- &HttpResponse{url, resp, result, end, err}
 		}(url)
 	}
 	return ch
