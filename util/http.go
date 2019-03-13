@@ -22,9 +22,7 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 	ch := make(chan *HttpResponse, len(urls)) // buffered
 	for _, url := range urls {
 		go func(url string) {
-			//log.Info("Fetching " + url)
 
-			// create a new http request
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				log.Fatal(err)
@@ -40,24 +38,19 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 				req.SetBasicAuth(user, pass)
 			}
 
-			// send request by default http client
-			//client := &http.Client{}
-			// resp, err := client.Do(req)
-			// if err == nil {
-			// 	resp.Body.Close()
-			// }
-
 			client := http.DefaultClient
 			resp, err := client.Do(req)
 			if err != nil {
 				log.Fatal(err)
 			}
-			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-				log.Fatal(err)
-			}
-			if err == nil {
+
+			// Explicitly Drain & close the body to allow faster
+			// reuse of the transport
+			defer func() {
+				io.Copy(ioutil.Discard, resp.Body)
 				resp.Body.Close()
-			}
+			}()
+
 			end := time.Now()
 
 			if log.GetLevel() == log.DebugLevel {

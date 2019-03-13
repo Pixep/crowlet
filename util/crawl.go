@@ -118,7 +118,6 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 
 		urlRange := urls[low : high+1]
 		results := AsyncHttpGets(urlRange, user, pass)
-		log.Debug("batch ", low, ":", high, " sending")
 		for range urlRange {
 			var result *HttpResponse
 			select {
