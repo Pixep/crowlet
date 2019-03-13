@@ -32,6 +32,14 @@ func beforeApp(c *cli.Context) error {
 	return nil
 }
 
+func afterApp(c *cli.Context) error {
+	if len(c.GlobalString("post-cmd")) > 1 {
+		util.Exec(c.GlobalString("post-cmd"), "post")
+	}
+
+	return nil
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "smapcrawl"
@@ -39,6 +47,7 @@ func main() {
 	app.Usage = "a basic sitemap.xml crawler"
 	app.Action = start
 	app.Before = beforeApp
+	app.After = afterApp
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "host",
