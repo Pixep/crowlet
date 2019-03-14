@@ -19,6 +19,7 @@ type CrawlStats struct {
 	Total          int
 	StatusCodes    map[int]int
 	Average200Time time.Duration
+	Max200Time     time.Duration
 }
 
 // PrintSummary prints a summary of HTTP response codes
@@ -32,7 +33,7 @@ func PrintSummary(stats CrawlStats) {
 	log.Info("  Total          ", stats.Total)
 	log.Info("")
 	log.Info("  Avg. time      ", stats.Average200Time.Round(time.Millisecond))
-	log.Info("  for 200")
+	log.Info("  Max time       ", stats.Max200Time.Round(time.Millisecond))
 	log.Info("---------------")
 }
 
@@ -94,11 +95,11 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 	}).Debug("loop summary")
 
 	var low int
-	var serverTimeTotal time.Duration
+	var serverTimeSum time.Duration
 	defer func() {
 		total200 := stats.StatusCodes[200]
 		if total200 > 0 {
-			stats.Average200Time = serverTimeTotal / time.Duration(total200)
+			stats.Average200Time = serverTimeSum / time.Duration(total200)
 		}
 	}()
 	for i := 0; i < numIter; i++ {
@@ -129,7 +130,15 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 
 			stats.Total++
 			stats.StatusCodes[result.Response.StatusCode]++
-			serverTimeTotal += result.Result.Total(result.EndTime)
+
+			if result.Response.StatusCode == 200 {
+				serverTime := result.Result.Total(result.EndTime)
+				serverTimeSum += serverTime
+
+				if serverTime > stats.Max200Time {
+					stats.Max200Time = serverTime
+				}
+			}
 		}
 		log.Debug("batch ", low, ":", high, " done")
 	}
