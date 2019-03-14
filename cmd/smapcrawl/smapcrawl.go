@@ -92,6 +92,15 @@ func main() {
 				" response if encountered",
 			Value: 1,
 		},
+		cli.IntFlag{
+			Name:  "response-time-error,l",
+			Usage: "suppresses all normal output",
+		},
+		cli.IntFlag{
+			Name:  "response-time-max,m",
+			Usage: "set maximum response time, in milliseconds, before considered an error",
+			Value: 0,
+		},
 		cli.StringFlag{
 			Name:  "pre-cmd",
 			Usage: "command(s) to run before starting crawler",
@@ -143,6 +152,12 @@ func start(c *cli.Context) error {
 
 	if stats.Total != stats.StatusCodes[200] {
 		exitCode = c.Int("non-200-error")
+	}
+
+	maxResponseTime := c.Int("response-time-max")
+	if maxResponseTime > 0 && int(stats.Max200Time/time.Millisecond) > maxResponseTime {
+		log.Warn("Max response time (", maxResponseTime, "ms) was exceeded")
+		exitCode = c.Int("response-time-error")
 	}
 
 	return nil
