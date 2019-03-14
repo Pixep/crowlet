@@ -10,12 +10,41 @@ Once built with `go install`, you will be able to use `smapcrawl` application fr
 
 ### Basic usage
 
-#### Check website's status
-
-The simplest use is to run it once on a sitemap. This will provide you information regarding return codes and complete server time.
+This sitemap crawler can be built and run locally
 
 ```
 smapcrawl https://foo.bar/sitemap.xml
+```
+
+... or from its docker image
+
+```
+docker run -it --rm index.docker.io/aleravat/sitemap-crawler:latest --quiet https://foo.bar/sitemap.xml
+```
+
+#### Check website's status
+
+Ran once on a sitemap, it will provide information regarding return codes and complete server time.
+
+```
+smapcrawl https://google.com/sitemap.xml
+INFO[0000] Crawling https://google.com/sitemap.xml      
+INFO[0020] Found 5010 URL(s)                            
+INFO[0020] URL: https://www.google.com/intl/ar/gmail/about/for-work/  status=200 total-time=85
+INFO[0020] URL: https://www.google.com/intl/ar/gmail/about/  status=200 total-time=86
+INFO[0020] URL: https://www.google.com/intl/am/gmail/about/for-work/  status=200 total-time=87
+INFO[0020] URL: https://www.google.com/intl/am/gmail/about/policy/  status=200 total-time=87
+INFO[0020] URL: https://www.google.com/intl/am/gmail/about/  status=200 total-time=88
+INFO[0021] Signal received, stopping...                 
+INFO[0021] ---------------                              
+INFO[0021] Summary:                                     
+INFO[0021]   HTTP Status    Count                       
+INFO[0021]     200          5                           
+INFO[0021]   Total          5                           
+INFO[0021]                                              
+INFO[0021]   Avg. time      87ms                        
+INFO[0021]   for 200                                    
+INFO[0021] ---------------
 ```
 
 #### Cache warmer
@@ -38,12 +67,18 @@ smapcrawl --non-200-error 150 https://foo.bar/sitemap.xml
 
 The following arguments can be used to customize its behavior:
 ```
+COMMANDS:
+     help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
    --host value                     override the hostname used in sitemap urls [$CRAWL_HOST]
    --user value, -u value           username for http basic authentication [$CRAWL_HTTP_USER]
    --pass value, -p value           password for http basic authentication [$CRAWL_HTTP_PASSWORD]
    --forever, -f                    reads the sitemap once keep crawling all urls until stopped
    --wait-interval value, -w value  wait interval in seconds between sitemap crawling iterations (default: 0) [$CRAWL_WAIT_INTERVAL]
    --throttle value, -t value       number of http requests to do at once (default: 5) [$CRAWL_THROTTLE]
+   --quiet, --silent, -q            suppresses all normal output
+   --non-200-error value, -e value  return with the exit code specified if any non-200 response if encountered (default: 1)
    --pre-cmd value                  command(s) to run before starting crawler
    --post-cmd value                 command(s) to run after crawler finishes
    --debug, -d                      run in debug mode
