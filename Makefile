@@ -1,7 +1,7 @@
 DOCKER_REGISTRY = index.docker.io
-IMAGE_NAME = sitemap-crawler
+IMAGE_NAME = crowlet
 IMAGE_VERSION = latest
-IMAGE_ORG = flaccid
+IMAGE_ORG = aleravat
 IMAGE_TAG = $(DOCKER_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_VERSION)
 
 WORKING_DIR := $(shell pwd)
@@ -10,15 +10,18 @@ WORKING_DIR := $(shell pwd)
 
 .PHONY: build push
 
-install:: ## Build and install smapcrawl locally
-		@cd cmd/smapcrawl/ && go install .
+build:: ## Build command line binary
+		@go build cmd/crowlet/crowlet.go
 
-release:: build push ## Builds and pushes the docker image to the registry
+install:: ## Build and install crowlet locally
+		@cd cmd/crowlet/ && go install .
+
+release:: docker-build docker-push ## Builds and pushes the docker image to the registry
 
 push:: ## Pushes the docker image to the registry
 		@docker push $(IMAGE_TAG)
 
-build:: ## Builds the docker image locally
+build-docker:: ## Builds the docker image locally
 		@echo building $(IMAGE_TAG)
 		@docker build --pull \
 		-t $(IMAGE_TAG) $(WORKING_DIR)
