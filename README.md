@@ -106,3 +106,7 @@ GLOBAL OPTIONS:
 ## License
 
 This project is licensed under the Apache-2.0 License- see the [LICENSE.md](LICENSE.md) file for details
+
+## Acknowledgment
+
+Thanks to @chris-scentregroup for his great initial work with `sitemap-crawler`
