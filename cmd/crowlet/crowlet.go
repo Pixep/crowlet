@@ -4,14 +4,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/Pixep/sitemap-crawler/util"
+	"github.com/Pixep/crowlet/util"
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/yterajima/go-sitemap"
 )
 
 var (
-	VERSION = "v0.0.0-dev"
+	VERSION = "v0.0.1"
 )
 
 func beforeApp(c *cli.Context) error {
@@ -44,7 +44,7 @@ var exitCode int
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "smapcrawl"
+	app.Name = "crowlet"
 	app.Version = VERSION
 	app.Usage = "a basic sitemap.xml crawler"
 	app.Action = start
