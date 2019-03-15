@@ -68,7 +68,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "forever,f",
-			Usage: "reads the sitemap once keep crawling all urls until stopped",
+			Usage: "crawl the sitemap's URLs forever... or until stopped",
 		},
 		cli.IntFlag{
 			Name:   "wait-interval,w",
@@ -84,21 +84,24 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "quiet,silent,q",
-			Usage: "suppresses all normal output",
+			Usage: "suppress all normal output",
 		},
 		cli.IntFlag{
 			Name: "non-200-error,e",
-			Usage: "return with the exit code specified if any non-200" +
-				" response if encountered",
+			Usage: "error code to use if any non-200 response if" +
+				" encountered",
 			Value: 1,
 		},
 		cli.IntFlag{
-			Name:  "response-time-error,l",
-			Usage: "suppresses all normal output",
+			Name: "response-time-error,l",
+			Usage: "error code to use if the maximum response time" +
+				" is overrun",
+			Value: 1,
 		},
 		cli.IntFlag{
-			Name:  "response-time-max,m",
-			Usage: "set maximum response time, in milliseconds, before considered an error",
+			Name: "response-time-max,m",
+			Usage: "maximum response time of URLs, in milliseconds, before" +
+				" considered an error",
 			Value: 0,
 		},
 		cli.StringFlag{
