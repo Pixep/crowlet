@@ -64,12 +64,12 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 					"content": int(result.ContentTransfer(end) / time.Millisecond),
 					"time":    total,
 					"close":   end,
-				}).Debug("URL: " + url)
+				}).Debug("url=" + url)
 			} else {
 				log.WithFields(log.Fields{
 					"status":     resp.StatusCode,
 					"total-time": total,
-				}).Info("URL: " + url)
+				}).Info("url=" + url)
 			}
 
 			ch <- &HttpResponse{url, resp, result, end, err}

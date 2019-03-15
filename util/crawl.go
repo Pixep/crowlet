@@ -24,17 +24,19 @@ type CrawlStats struct {
 
 // PrintSummary prints a summary of HTTP response codes
 func PrintSummary(stats CrawlStats) {
-	log.Info("---------------")
-	log.Info("Summary:")
-	log.Info("  HTTP Status    Count")
-	for code, count := range stats.StatusCodes {
-		log.Info("    ", code, "          ", count)
-	}
-	log.Info("  Total          ", stats.Total)
+	log.Info("-------- Summary -------")
+	log.Info("general:")
+	log.Info("    crawled: ", stats.Total)
 	log.Info("")
-	log.Info("  Avg. time      ", stats.Average200Time.Round(time.Millisecond))
-	log.Info("  Max time       ", stats.Max200Time.Round(time.Millisecond))
-	log.Info("---------------")
+	log.Info("status:")
+	for code, count := range stats.StatusCodes {
+		log.Info("    status-", code, ": ", count)
+	}
+	log.Info("")
+	log.Info("server-time: ")
+	log.Info("    avg-time: ", int(stats.Average200Time/time.Millisecond), "ms")
+	log.Info("    max-time: ", int(stats.Max200Time/time.Millisecond), "ms")
+	log.Info("------------------------")
 }
 
 func addInterruptHandlers(stop chan struct{}) {
