@@ -137,12 +137,10 @@ func start(c *cli.Context) error {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		var stop bool
-		var err error
-		stats, stop, err = util.AsyncCrawl(urls, c.Int("throttle"),
+		itStats, stop, err := util.AsyncCrawl(urls, c.Int("throttle"),
 			c.String("host"), c.String("user"), c.String("pass"))
 
-		util.PrintSummary(stats)
+		stats = util.MergeCrawlStats(stats, itStats)
 
 		if err != nil {
 			log.Warn(err)
@@ -152,6 +150,8 @@ func start(c *cli.Context) error {
 			break
 		}
 	}
+
+	util.PrintSummary(stats)
 
 	if stats.Total != stats.StatusCodes[200] {
 		exitCode = c.Int("non-200-error")

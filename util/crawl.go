@@ -22,6 +22,41 @@ type CrawlStats struct {
 	Max200Time     time.Duration
 }
 
+// MergeCrawlStats merges two sets of crawling statistics together.
+// The average time will be an average of the two averages, and not an average
+// of all individual times.
+func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
+	stats.Total = statsA.Total + statsB.Total
+	if statsA.Total == 0 && statsB.Total != 0 {
+		stats.Average200Time = statsB.Average200Time
+	} else if statsB.Total == 0 {
+		stats.Average200Time = statsA.Average200Time
+	} else {
+		// TODO: This is actually *not* an average anymore...
+		stats.Average200Time = (statsA.Average200Time + statsB.Average200Time) / 2
+	}
+
+	if statsA.Max200Time > statsB.Max200Time {
+		stats.Max200Time = statsA.Max200Time
+	} else {
+		stats.Max200Time = statsB.Max200Time
+	}
+
+	if statsA.StatusCodes != nil {
+		stats.StatusCodes = statsA.StatusCodes
+	} else {
+		stats.StatusCodes = make(map[int]int)
+	}
+
+	if statsB.StatusCodes != nil {
+		for key, value := range statsB.StatusCodes {
+			stats.StatusCodes[key] = stats.StatusCodes[key] + value
+		}
+	}
+
+	return
+}
+
 // PrintSummary prints a summary of HTTP response codes
 func PrintSummary(stats CrawlStats) {
 	log.Info("-------- Summary -------")
