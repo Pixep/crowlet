@@ -51,11 +51,47 @@ func addInterruptHandlers(stop chan struct{}) {
 	}()
 }
 
-// AsyncCrawl crawls synchronously URLs from a sitemap and prints related
+// GetSitemapUrls returns all URLs found from the sitemap passed as parameter.
+// This function will only retrieve URLs in the sitemap pointed, and in
+// sitemaps directly listed (i.e. only 1 level deep or less)
+func GetSitemapUrls(sitemapURL string) (urls []*url.URL, err error) {
+	sitemap, err := sitemap.Get(sitemapURL, nil)
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	for _, urlEntry := range sitemap.URL {
+		newURL, err := url.Parse(urlEntry.Loc)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		urls = append(urls, newURL)
+	}
+
+	return
+}
+
+// GetSitemapUrlsAsStrings returns all URLs found as string, from in the
+// sitemap passed as parameter.
+// This function will only retrieve URLs in the sitemap pointed, and in
+// sitemaps directly listed (i.e. only 1 level deep or less)
+func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
+	typedUrls, err := GetSitemapUrls(sitemapURL)
+	for _, url := range typedUrls {
+		urls = append(urls, url.String())
+	}
+
+	return
+}
+
+// AsyncCrawl crawls asynchronously URLs from a sitemap and prints related
 // information. Throttle is the maximum number of parallel HTTP requests.
 // Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
-func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
+func AsyncCrawl(urls []string, throttle int, host string,
 	user string, pass string) (stats CrawlStats, stopped bool, err error) {
 	stats.StatusCodes = make(map[int]int)
 	defer func() {
@@ -73,19 +109,6 @@ func AsyncCrawl(smap sitemap.Sitemap, throttle int, host string,
 
 	stop := make(chan struct{})
 	addInterruptHandlers(stop)
-
-	// place all the urls into an array
-	var urls []string
-	for _, URL := range smap.URL {
-		u, err := url.Parse(URL.Loc)
-		if err != nil {
-			panic(err)
-		}
-		if len(host) > 0 {
-			u.Host = host
-		}
-		urls = append(urls, u.String())
-	}
 
 	numUrls := len(urls)
 	numIter := int(math.Ceil(float64(numUrls) / float64(throttle)))

@@ -7,7 +7,6 @@ import (
 	"github.com/Pixep/crowlet/util"
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/yterajima/go-sitemap"
 )
 
 var (
@@ -126,11 +125,11 @@ func start(c *cli.Context) error {
 	sitemapURL := c.Args().Get(0)
 	log.Info("Crawling ", sitemapURL)
 
-	smap, err := sitemap.Get(sitemapURL, nil)
+	urls, err := util.GetSitemapUrlsAsStrings(sitemapURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info("Found ", len(smap.URL), " URL(s)")
+	log.Info("Found ", len(urls), " URL(s)")
 
 	var stats util.CrawlStats
 	for i := 0; i < 1 || c.Bool("forever"); i++ {
@@ -140,7 +139,8 @@ func start(c *cli.Context) error {
 
 		var stop bool
 		var err error
-		stats, stop, err = util.AsyncCrawl(smap, c.Int("throttle"), c.String("host"), c.String("user"), c.String("pass"))
+		stats, stop, err = util.AsyncCrawl(urls, c.Int("throttle"),
+			c.String("host"), c.String("user"), c.String("pass"))
 
 		util.PrintSummary(stats)
 
