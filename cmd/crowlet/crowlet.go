@@ -70,6 +70,11 @@ func main() {
 			Usage: "crawl the sitemap's URLs forever... or until stopped",
 		},
 		cli.IntFlag{
+			Name:  "iterations,i",
+			Usage: "number of crawling iterations for the whole sitemap",
+			Value: 1,
+		},
+		cli.IntFlag{
 			Name:   "wait-interval,w",
 			Usage:  "wait interval in seconds between sitemap crawling iterations",
 			EnvVar: "CRAWL_WAIT_INTERVAL",
@@ -132,7 +137,7 @@ func start(c *cli.Context) error {
 	log.Info("Found ", len(urls), " URL(s)")
 
 	var stats util.CrawlStats
-	for i := 0; i < 1 || c.Bool("forever"); i++ {
+	for i := 0; i < c.Int("iterations") || c.Bool("forever"); i++ {
 		if i != 0 {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
