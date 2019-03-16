@@ -1,4 +1,6 @@
 # Crowlet
+![goreportcard](https://goreportcard.com/badge/github.com/Pixep/crowlet)
+
 
 Crowlet is a `sitemap.xml` crawler, that can be used as cache warmer, or as a monitoring tool. When ran, it will report information relative to the crawling. Uses include:
 - Manual website health check
