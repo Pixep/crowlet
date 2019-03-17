@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	VERSION = "v0.0.1"
+	VERSION = "v0.0.2"
 )
 
 func beforeApp(c *cli.Context) error {
@@ -18,6 +18,10 @@ func beforeApp(c *cli.Context) error {
 		log.SetLevel(log.DebugLevel)
 	} else if c.GlobalBool("quiet") || c.GlobalBool("summary-only") {
 		log.SetLevel(log.FatalLevel)
+	}
+
+	if c.GlobalBool("json") {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	if c.NArg() < 1 {
@@ -89,6 +93,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "quiet,silent,q",
 			Usage: "suppress all normal output",
+		},
+		cli.BoolFlag{
+			Name:  "json,j",
+			Usage: "output using JSON format (experimental)",
 		},
 		cli.IntFlag{
 			Name: "non-200-error,e",
