@@ -13,8 +13,8 @@ import (
 	"github.com/yterajima/go-sitemap"
 )
 
-// CrawlStats stores crawling status codes and
-// total number of crawled URLs
+// CrawlStats holds crawling related information: status codes, time
+// and totals
 type CrawlStats struct {
 	Total          int
 	StatusCodes    map[int]int
