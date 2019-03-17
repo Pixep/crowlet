@@ -92,15 +92,18 @@ GLOBAL OPTIONS:
    --user value, -u value                 username for http basic authentication [$CRAWL_HTTP_USER]
    --pass value, -p value                 password for http basic authentication [$CRAWL_HTTP_PASSWORD]
    --forever, -f                          crawl the sitemap's URLs forever... or until stopped
+   --iterations value, -i value           number of crawling iterations for the whole sitemap (default: 1)
    --wait-interval value, -w value        wait interval in seconds between sitemap crawling iterations (default: 0) [$CRAWL_WAIT_INTERVAL]
    --throttle value, -t value             number of http requests to do at once (default: 5) [$CRAWL_THROTTLE]
    --quiet, --silent, -q                  suppress all normal output
+   --json, -j                             output using JSON format (experimental)
    --non-200-error value, -e value        error code to use if any non-200 response if encountered (default: 1)
    --response-time-error value, -l value  error code to use if the maximum response time is overrun (default: 1)
    --response-time-max value, -m value    maximum response time of URLs, in milliseconds, before considered an error (default: 0)
+   --summary-only                         print only the summary
    --pre-cmd value                        command(s) to run before starting crawler
    --post-cmd value                       command(s) to run after crawler finishes
-   --debug, -d                            run in debug mode
+   --debug                                run in debug mode
    --help, -h                             show help
    --version, -v                          print the version
 ```
