@@ -129,7 +129,7 @@ func main() {
 			Usage: "command(s) to run after crawler finishes",
 		},
 		cli.BoolFlag{
-			Name:  "debug,d",
+			Name:  "debug",
 			Usage: "run in debug mode",
 		},
 	}
