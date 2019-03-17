@@ -16,7 +16,7 @@ var (
 func beforeApp(c *cli.Context) error {
 	if c.GlobalBool("debug") {
 		log.SetLevel(log.DebugLevel)
-	} else if c.GlobalBool("quiet") {
+	} else if c.GlobalBool("quiet") || c.GlobalBool("summary-only") {
 		log.SetLevel(log.FatalLevel)
 	}
 
@@ -108,6 +108,10 @@ func main() {
 				" considered an error",
 			Value: 0,
 		},
+		cli.BoolFlag{
+			Name:  "summary-only",
+			Usage: "print only the summary",
+		},
 		cli.StringFlag{
 			Name:  "pre-cmd",
 			Usage: "command(s) to run before starting crawler",
@@ -156,7 +160,14 @@ func start(c *cli.Context) error {
 		}
 	}
 
+	summaryOnly := c.Bool("summary-only")
+	if summaryOnly {
+		log.SetLevel(log.InfoLevel)
+	}
 	util.PrintSummary(stats)
+	if summaryOnly {
+		log.SetLevel(log.FatalLevel)
+	}
 
 	if stats.Total != stats.StatusCodes[200] {
 		exitCode = c.Int("non-200-error")
