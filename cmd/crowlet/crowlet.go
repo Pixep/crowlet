@@ -148,14 +148,22 @@ func start(c *cli.Context) error {
 	}
 	log.Info("Found ", len(urls), " URL(s)")
 
+	config := util.CrawlConfig{
+		Throttle: c.Int("throttle"),
+		Host:     c.String("host"),
+		HTTP: util.HTTPConfig{
+			User: c.String("user"),
+			Pass: c.String("pass"),
+		},
+	}
+
 	var stats util.CrawlStats
 	for i := 0; i < c.Int("iterations") || c.Bool("forever"); i++ {
 		if i != 0 {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		itStats, stop, err := util.AsyncCrawl(urls, c.Int("throttle"),
-			c.String("host"), c.String("user"), c.String("pass"))
+		itStats, stop, err := util.AsyncCrawl(urls, config)
 
 		stats = util.MergeCrawlStats(stats, itStats)
 

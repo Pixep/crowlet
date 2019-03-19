@@ -22,6 +22,13 @@ type CrawlStats struct {
 	Max200Time     time.Duration
 }
 
+// CrawlConfig holds crawling configuration.
+type CrawlConfig struct {
+	Throttle int
+	Host     string
+	HTTP     HTTPConfig
+}
+
 // MergeCrawlStats merges two sets of crawling statistics together.
 // The average time will be an average of the two averages, and not an average
 // of all individual times.
@@ -126,8 +133,8 @@ func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
 // information. Throttle is the maximum number of parallel HTTP requests.
 // Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
-func AsyncCrawl(urls []string, throttle int, host string,
-	user string, pass string) (stats CrawlStats, stopped bool, err error) {
+func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
+	stopped bool, err error) {
 	stats.StatusCodes = make(map[int]int)
 	defer func() {
 		if stats.Total == 0 {
@@ -137,20 +144,20 @@ func AsyncCrawl(urls []string, throttle int, host string,
 		}
 	}()
 
-	if throttle <= 0 {
+	if config.Throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
-		throttle = 1
+		config.Throttle = 1
 	}
 
 	stop := make(chan struct{})
 	addInterruptHandlers(stop)
 
 	numUrls := len(urls)
-	numIter := int(math.Ceil(float64(numUrls) / float64(throttle)))
+	numIter := int(math.Ceil(float64(numUrls) / float64(config.Throttle)))
 
 	log.WithFields(log.Fields{
 		"url count":  numUrls,
-		"throttle":   throttle,
+		"throttle":   config.Throttle,
 		"iterations": numIter,
 	}).Debug("loop summary")
 
@@ -163,8 +170,8 @@ func AsyncCrawl(urls []string, throttle int, host string,
 		}
 	}()
 	for i := 0; i < numIter; i++ {
-		low = i * throttle
-		high := (low + throttle) - 1
+		low = i * config.Throttle
+		high := (low + config.Throttle) - 1
 
 		// do not let high exceed total (last batch/upper limit)
 		if high > numUrls {
@@ -178,7 +185,7 @@ func AsyncCrawl(urls []string, throttle int, host string,
 		}).Debug("loop position")
 
 		urlRange := urls[low : high+1]
-		results := AsyncHttpGets(urlRange, HTTPConfig{user, pass})
+		results := AsyncHttpGets(urlRange, config.HTTP)
 		for range urlRange {
 			var result *HttpResponse
 			select {
