@@ -1,12 +1,11 @@
 version: '2'
 services:
   google:
-    image: flaccid/sitemap-crawler
+    image: aleravat/crowlet
     stdin_open: true
     tty: true
     command:
-    - -d
-    - -a
+    - --debug
     - -t
     - '64'
     - https://www.google.com/sitemap.xml
