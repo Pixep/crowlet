@@ -178,7 +178,7 @@ func AsyncCrawl(urls []string, throttle int, host string,
 		}).Debug("loop position")
 
 		urlRange := urls[low : high+1]
-		results := AsyncHttpGets(urlRange, user, pass)
+		results := AsyncHttpGets(urlRange, HTTPConfig{user, pass})
 		for range urlRange {
 			var result *HttpResponse
 			select {

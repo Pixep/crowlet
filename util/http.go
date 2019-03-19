@@ -18,7 +18,13 @@ type HttpResponse struct {
 	Err      error
 }
 
-func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse {
+// HTTPConfig hold settings used to get pages via HTTP/S
+type HTTPConfig struct {
+	user string
+	pass string
+}
+
+func AsyncHttpGets(urls []string, config HTTPConfig) <-chan *HttpResponse {
 	ch := make(chan *HttpResponse, len(urls)) // buffered
 	for _, url := range urls {
 		go func(url string) {
@@ -34,8 +40,8 @@ func AsyncHttpGets(urls []string, user string, pass string) <-chan *HttpResponse
 			req = req.WithContext(ctx)
 
 			// set http basic if provided
-			if len(user) > 0 {
-				req.SetBasicAuth(user, pass)
+			if len(config.user) > 0 {
+				req.SetBasicAuth(config.user, config.pass)
 			}
 
 			client := http.DefaultClient
