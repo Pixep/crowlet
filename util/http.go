@@ -20,8 +20,8 @@ type HttpResponse struct {
 
 // HTTPConfig hold settings used to get pages via HTTP/S
 type HTTPConfig struct {
-	user string
-	pass string
+	User string
+	Pass string
 }
 
 func AsyncHttpGets(urls []string, config HTTPConfig) <-chan *HttpResponse {
@@ -40,8 +40,8 @@ func AsyncHttpGets(urls []string, config HTTPConfig) <-chan *HttpResponse {
 			req = req.WithContext(ctx)
 
 			// set http basic if provided
-			if len(config.user) > 0 {
-				req.SetBasicAuth(config.user, config.pass)
+			if len(config.User) > 0 {
+				req.SetBasicAuth(config.User, config.Pass)
 			}
 
 			client := http.DefaultClient
