@@ -1,4 +1,4 @@
-FROM golang:1.9-alpine3.7 as builder
+FROM golang:1.12-alpine as builder
 
 COPY . /go/src/github.com/Pixep/crowlet
 
