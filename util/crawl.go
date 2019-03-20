@@ -169,14 +169,18 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 			}
 
 			stats.Total++
-			stats.StatusCodes[result.Response.StatusCode]++
+			if result.Err != nil {
+				stats.StatusCodes[0]++
+			} else {
+				stats.StatusCodes[result.Response.StatusCode]++
 
-			if result.Response.StatusCode == 200 {
-				serverTime := result.Result.Total(result.EndTime)
-				serverTimeSum += serverTime
+				if result.Response.StatusCode == 200 {
+					serverTime := result.Result.Total(result.EndTime)
+					serverTimeSum += serverTime
 
-				if serverTime > stats.Max200Time {
-					stats.Max200Time = serverTime
+					if serverTime > stats.Max200Time {
+						stats.Max200Time = serverTime
+					}
 				}
 			}
 		}
