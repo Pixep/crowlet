@@ -2,7 +2,6 @@ package util
 
 import (
 	"errors"
-	"math"
 	"net/url"
 	"os"
 	"os/signal"
@@ -81,16 +80,19 @@ func PrintSummary(stats CrawlStats) {
 	log.Info("------------------------")
 }
 
-func addInterruptHandlers(stop chan struct{}) {
+func addInterruptHandlers() chan struct{} {
+	stop := make(chan struct{})
 	osSignal := make(chan os.Signal)
 	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)
 	signal.Notify(osSignal, os.Interrupt, syscall.SIGINT)
 
 	go func() {
 		<-osSignal
-		log.Info("Signal received, stopping...")
+		log.Info("Interrupt signal received")
 		stop <- struct{}{}
 	}()
+
+	return stop
 }
 
 // GetSitemapUrls returns all URLs found from the sitemap passed as parameter.
@@ -149,19 +151,6 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 		config.Throttle = 1
 	}
 
-	stop := make(chan struct{})
-	addInterruptHandlers(stop)
-
-	numUrls := len(urls)
-	numIter := int(math.Ceil(float64(numUrls) / float64(config.Throttle)))
-
-	log.WithFields(log.Fields{
-		"url count":  numUrls,
-		"throttle":   config.Throttle,
-		"iterations": numIter,
-	}).Debug("loop summary")
-
-	var low int
 	var serverTimeSum time.Duration
 	defer func() {
 		total200 := stats.StatusCodes[200]
@@ -169,29 +158,13 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 			stats.Average200Time = serverTimeSum / time.Duration(total200)
 		}
 	}()
-	for i := 0; i < numIter; i++ {
-		low = i * config.Throttle
-		high := (low + config.Throttle) - 1
 
-		// do not let high exceed total (last batch/upper limit)
-		if high > numUrls {
-			high = numUrls - 1
-		}
-
-		log.WithFields(log.Fields{
-			"iteration": i,
-			"low":       low,
-			"high":      high,
-		}).Debug("loop position")
-
-		urlRange := urls[low : high+1]
-		results := AsyncHttpGets(urlRange, config.HTTP)
-		for range urlRange {
-			var result *HttpResponse
-			select {
-			case result = <-results:
-			case <-stop:
-				stopped = true
+	quit := addInterruptHandlers()
+	results := ConcurrentHTTPGets(urls, config.HTTP, config.Throttle, quit)
+	for {
+		select {
+		case result, channelOpen := <-results:
+			if !channelOpen {
 				return
 			}
 
@@ -207,8 +180,5 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 				}
 			}
 		}
-		log.Debug("batch ", low, ":", high, " done")
 	}
-
-	return
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -90,12 +91,37 @@ func HTTPGet(url string, config HTTPConfig) (response *HttpResponse) {
 	return
 }
 
-func AsyncHttpGets(urls []string, config HTTPConfig) <-chan *HttpResponse {
-	ch := make(chan *HttpResponse, len(urls)) // buffered
-	for _, url := range urls {
-		go func(url string) {
-			ch <- HTTPGet(url, config)
-		}(url)
-	}
-	return ch
+// ConcurrentHTTPGets will GET the urls passed and result the results of the crawling
+func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int, quit chan struct{}) <-chan *HttpResponse {
+	resultChan := make(chan *HttpResponse, len(urls))
+	httpResources := make(chan int, maxConcurrent-1)
+
+	go func() {
+		var wg sync.WaitGroup
+
+		defer func() {
+			wg.Wait()
+			close(resultChan)
+		}()
+
+		for _, url := range urls {
+			select {
+			case <-quit:
+				return
+			case httpResources <- 1:
+				wg.Add(1)
+
+				go func(url string) {
+					defer func() {
+						<-httpResources
+						wg.Done()
+					}()
+
+					resultChan <- HTTPGet(url, config)
+				}(url)
+			}
+		}
+	}()
+
+	return resultChan
 }
