@@ -25,10 +25,16 @@ type HTTPConfig struct {
 }
 
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
-func HTTPGet(url string, config HTTPConfig) *HttpResponse {
+func HTTPGet(url string, config HTTPConfig) (response *HttpResponse) {
+	response = &HttpResponse{
+		URL: url,
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		response.Err = err
+		return
 	}
 
 	// create a httpstat powered context
@@ -44,8 +50,9 @@ func HTTPGet(url string, config HTTPConfig) *HttpResponse {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
-		// TODO: Should not Fatal
-		log.Fatal(err)
+		log.Error(err)
+		response.Err = err
+		return
 	}
 
 	// Explicitly Drain & close the body to allow faster
@@ -57,6 +64,10 @@ func HTTPGet(url string, config HTTPConfig) *HttpResponse {
 
 	end := time.Now()
 	total := int(result.Total(end).Round(time.Millisecond) / time.Millisecond)
+
+	response.EndTime = end
+	response.Response = resp
+	response.Result = result
 
 	if log.GetLevel() == log.DebugLevel {
 		log.WithFields(log.Fields{
@@ -76,7 +87,7 @@ func HTTPGet(url string, config HTTPConfig) *HttpResponse {
 		}).Info("url=" + url)
 	}
 
-	return &HttpResponse{url, resp, result, end, err}
+	return
 }
 
 func AsyncHttpGets(urls []string, config HTTPConfig) <-chan *HttpResponse {
