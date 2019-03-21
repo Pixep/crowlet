@@ -109,6 +109,7 @@ func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int,
 		for _, url := range urls {
 			select {
 			case <-quit:
+				log.Info("Waiting for workers to finish...")
 				return
 			case httpResources <- 1:
 				wg.Add(1)

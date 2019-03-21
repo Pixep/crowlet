@@ -88,7 +88,7 @@ func addInterruptHandlers() chan struct{} {
 
 	go func() {
 		<-osSignal
-		log.Info("Interrupt signal received")
+		log.Warn("Interrupt signal received")
 		stop <- struct{}{}
 	}()
 
