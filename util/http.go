@@ -11,7 +11,8 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-type HttpResponse struct {
+// HTTPResponse holds information from a GET to a specific URL
+type HTTPResponse struct {
 	URL      string
 	Response *http.Response
 	Result   httpstat.Result
@@ -26,8 +27,8 @@ type HTTPConfig struct {
 }
 
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
-func HTTPGet(url string, config HTTPConfig) (response *HttpResponse) {
-	response = &HttpResponse{
+func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
+	response = &HTTPResponse{
 		URL: url,
 	}
 
@@ -92,8 +93,9 @@ func HTTPGet(url string, config HTTPConfig) (response *HttpResponse) {
 }
 
 // ConcurrentHTTPGets will GET the urls passed and result the results of the crawling
-func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int, quit chan struct{}) <-chan *HttpResponse {
-	resultChan := make(chan *HttpResponse, len(urls))
+func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int,
+	quit chan struct{}) <-chan *HTTPResponse {
+	resultChan := make(chan *HTTPResponse, len(urls))
 	httpResources := make(chan int, maxConcurrent-1)
 
 	go func() {
