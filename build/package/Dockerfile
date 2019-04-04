@@ -1,12 +1,10 @@
 FROM golang:1.12-alpine as builder
 
-COPY . /go/src/github.com/Pixep/crowlet
+RUN apk add --update --no-cache git gcc musl-dev
+RUN go get github.com/Pixep/crowlet/cmd/crowlet
 
 WORKDIR /go/src/github.com/Pixep/crowlet/cmd/crowlet
-
-RUN apk add --update --no-cache git gcc musl-dev && \
-    go get ./... && \
-    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o /opt/bin/crowlet .
+RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o /opt/bin/crowlet .
 
 FROM centurylink/ca-certs
 
