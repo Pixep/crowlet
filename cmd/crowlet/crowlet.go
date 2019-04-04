@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Pixep/crowlet/pkg/crawler"
 	"github.com/Pixep/crowlet/util"
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -142,30 +143,30 @@ func start(c *cli.Context) error {
 	sitemapURL := c.Args().Get(0)
 	log.Info("Crawling ", sitemapURL)
 
-	urls, err := util.GetSitemapUrlsAsStrings(sitemapURL)
+	urls, err := crawler.GetSitemapUrlsAsStrings(sitemapURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Info("Found ", len(urls), " URL(s)")
 
-	config := util.CrawlConfig{
+	config := crawler.CrawlConfig{
 		Throttle: c.Int("throttle"),
 		Host:     c.String("host"),
-		HTTP: util.HTTPConfig{
+		HTTP: crawler.HTTPConfig{
 			User: c.String("user"),
 			Pass: c.String("pass"),
 		},
 	}
 
-	var stats util.CrawlStats
+	var stats crawler.CrawlStats
 	for i := 0; i < c.Int("iterations") || c.Bool("forever"); i++ {
 		if i != 0 {
 			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
 		}
 
-		itStats, stop, err := util.AsyncCrawl(urls, config)
+		itStats, stop, err := crawler.AsyncCrawl(urls, config)
 
-		stats = util.MergeCrawlStats(stats, itStats)
+		stats = crawler.MergeCrawlStats(stats, itStats)
 
 		if err != nil {
 			log.Warn(err)
@@ -180,7 +181,7 @@ func start(c *cli.Context) error {
 	if summaryOnly {
 		log.SetLevel(log.InfoLevel)
 	}
-	util.PrintSummary(stats)
+	crawler.PrintSummary(stats)
 	if summaryOnly {
 		log.SetLevel(log.FatalLevel)
 	}
