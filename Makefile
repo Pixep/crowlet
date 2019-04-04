@@ -17,9 +17,9 @@ build:: ## Build command line binary
 build-static-linux:: ## Builds a static linux binary
 		@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 			go build \
-			-o bin/rsg \
+			-o bin/crowlet \
 			-a -ldflags '-extldflags "-static"' \
-				cmd/rsg/rsg.go
+				cmd/crowlet/crowlet.go
 
 install:: ## Build and install crowlet locally
 		@cd cmd/crowlet/ && go install .
