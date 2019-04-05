@@ -9,7 +9,7 @@ import (
 )
 
 // Exec runs a system command
-func Exec(cmdLine string, prefix string) bool {
+func Exec(cmdLine string) bool {
 	log.Info("Running '", cmdLine, "'...")
 	cmd := exec.Command(cmdLine)
 
