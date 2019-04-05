@@ -11,10 +11,13 @@ DOCKERFILE_DIR := $(WORKING_DIR)/build/package
 
 .PHONY: build push
 
-build:: ## Build command line binary
+install-deps:: ## Download and installs dependencies
+		@go get ./cmd/crowlet/...
+
+build:: install-deps ## Build command line binary
 		@go build cmd/crowlet/crowlet.go
 
-build-static-linux:: ## Builds a static linux binary
+build-static-linux:: install-deps ## Builds a static linux binary
 		@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 			go build \
 			-o bin/crowlet \
