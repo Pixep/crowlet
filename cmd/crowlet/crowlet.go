@@ -4,8 +4,9 @@ import (
 	"os"
 	"time"
 
+	exec "github.com/Pixep/crowlet/internal/pkg"
 	"github.com/Pixep/crowlet/pkg/crawler"
-	"github.com/Pixep/crowlet/util"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -31,7 +32,7 @@ func beforeApp(c *cli.Context) error {
 	}
 
 	if len(c.GlobalString("pre-cmd")) > 1 {
-		ok := util.Exec(c.GlobalString("pre-cmd"))
+		ok := exec.Exec(c.GlobalString("pre-cmd"))
 		if !ok {
 			log.Fatal("Failed to execute command")
 		}
@@ -42,7 +43,7 @@ func beforeApp(c *cli.Context) error {
 
 func afterApp(c *cli.Context) error {
 	if len(c.GlobalString("post-cmd")) > 1 {
-		ok := util.Exec(c.GlobalString("post-cmd"))
+		ok := exec.Exec(c.GlobalString("post-cmd"))
 		if !ok {
 			log.Fatal("Failed to execute command")
 		}
