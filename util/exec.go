@@ -8,29 +8,29 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Exec runs a system command
 func Exec(cmdLine string, prefix string) {
+	log.Info("Running '", cmdLine, "'...")
 	cmd := exec.Command(cmdLine)
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatalf("error creating stdout pipe for cmd", err)
+		log.Error("Error reading from command standard output:", err)
+		return
 	}
 
 	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			log.Info(prefix, "-cmd start")
-			fmt.Printf("%s\n", scanner.Text())
-			log.Info(prefix, "-cmd end")
-		}
-	}()
-
 	err = cmd.Start()
 	if err != nil {
-		log.Fatalf("error starting cmd", err)
+		log.Error("Failed to start command:", err)
+		return
+	}
+
+	for scanner.Scan() {
+		fmt.Printf("%s\n", scanner.Text())
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		log.Fatalf("error waiting for cmd", err)
+		log.Error("Error waiting for command:", err)
 	}
 }
