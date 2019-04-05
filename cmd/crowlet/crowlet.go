@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	VERSION = "v0.0.2"
+	// VERSION stores the current version as string
+	VERSION = "v0.1.0"
 )
 
 func beforeApp(c *cli.Context) error {
