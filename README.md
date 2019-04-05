@@ -13,17 +13,23 @@ The simplest option is to run the tool from its docker image `aleravat/crowlet`.
 
 ### Basic usage
 
-This sitemap crawler can be built and run locally
-
-```
-crowlet https://foo.bar/sitemap.xml
-```
-
-... or from its docker image
+Run the sitemap crawler from its docker image directly
 
 ```
 docker run -it --rm aleravat/crowlet https://foo.bar/sitemap.xml
 ```
+
+Or build locally with `make build` and run.
+You can alternatively use `make build-static-linux` to build a self contained binary for Linux platforms.
+
+```
+make build
+./crowlet https://foo.bar/sitemap.xml
+```
+
+### Use scenarios
+
+Crowlet can be used in a few different ways, as described below.
 
 #### Check website's status
 
