@@ -31,7 +31,10 @@ func beforeApp(c *cli.Context) error {
 	}
 
 	if len(c.GlobalString("pre-cmd")) > 1 {
-		util.Exec(c.GlobalString("pre-cmd"), "pre")
+		ok := util.Exec(c.GlobalString("pre-cmd"), "pre")
+		if !ok {
+			log.Fatal("Failed to execute command")
+		}
 	}
 
 	return nil
@@ -39,7 +42,10 @@ func beforeApp(c *cli.Context) error {
 
 func afterApp(c *cli.Context) error {
 	if len(c.GlobalString("post-cmd")) > 1 {
-		util.Exec(c.GlobalString("post-cmd"), "post")
+		ok := util.Exec(c.GlobalString("post-cmd"), "post")
+		if !ok {
+			log.Fatal("Failed to execute command")
+		}
 	}
 
 	return nil

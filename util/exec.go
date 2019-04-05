@@ -9,20 +9,21 @@ import (
 )
 
 // Exec runs a system command
-func Exec(cmdLine string, prefix string) {
+func Exec(cmdLine string, prefix string) bool {
 	log.Info("Running '", cmdLine, "'...")
 	cmd := exec.Command(cmdLine)
+
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Error("Error reading from command standard output:", err)
-		return
+		return false
 	}
 
 	scanner := bufio.NewScanner(cmdReader)
 	err = cmd.Start()
 	if err != nil {
 		log.Error("Failed to start command:", err)
-		return
+		return false
 	}
 
 	for scanner.Scan() {
@@ -32,5 +33,8 @@ func Exec(cmdLine string, prefix string) {
 	err = cmd.Wait()
 	if err != nil {
 		log.Error("Error waiting for command:", err)
+		return false
 	}
+
+	return true
 }
