@@ -26,6 +26,10 @@ type HTTPConfig struct {
 	Pass string
 }
 
+// HTTPGetter performs a single HTTP/S  to the url, and return information
+// related to the result as an HTTPResponse
+type HTTPGetter func(url string, config HTTPConfig) (response *HTTPResponse)
+
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
 func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	response = &HTTPResponse{
@@ -92,8 +96,19 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	return
 }
 
-// ConcurrentHTTPGets will GET the urls passed and result the results of the crawling
-func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int,
+// ConcurrentHTTPGetter allows concurrent execution of an HTTPGetter
+type ConcurrentHTTPGetter interface {
+	ConcurrentHTTPGet(urls []string, config HTTPConfig, maxConcurrent int,
+		quit chan struct{}) <-chan *HTTPResponse
+}
+
+// BaseConcurrentHTTPGetter implements HTTPGetter interface using net/http package
+type BaseConcurrentHTTPGetter struct {
+	Get HTTPGetter
+}
+
+// ConcurrentHTTPGet will GET the urls passed and result the results of the crawling
+func (getter *BaseConcurrentHTTPGetter) ConcurrentHTTPGet(urls []string, config HTTPConfig, maxConcurrent int,
 	quit chan struct{}) <-chan *HTTPResponse {
 	resultChan := make(chan *HTTPResponse, len(urls))
 	httpResources := make(chan int, maxConcurrent-1)
@@ -120,7 +135,7 @@ func ConcurrentHTTPGets(urls []string, config HTTPConfig, maxConcurrent int,
 						wg.Done()
 					}()
 
-					resultChan <- HTTPGet(url, config)
+					resultChan <- getter.Get(url, config)
 				}(url)
 			}
 		}

@@ -164,6 +164,9 @@ func start(c *cli.Context) error {
 			User: c.String("user"),
 			Pass: c.String("pass"),
 		},
+		HTTPGetter: &crawler.BaseConcurrentHTTPGetter{
+			Get: crawler.HTTPGet,
+		},
 	}
 
 	var stats crawler.CrawlStats

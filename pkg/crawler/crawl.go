@@ -23,9 +23,14 @@ type CrawlStats struct {
 
 // CrawlConfig holds crawling configuration.
 type CrawlConfig struct {
-	Throttle int
-	Host     string
-	HTTP     HTTPConfig
+	Throttle   int
+	Host       string
+	HTTP       HTTPConfig
+	HTTPGetter ConcurrentHTTPGetter
+}
+
+// Crawler provides crawling capabilities
+type Crawler struct {
 }
 
 // MergeCrawlStats merges two sets of crawling statistics together.
@@ -160,7 +165,7 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 	}()
 
 	quit := addInterruptHandlers()
-	results := ConcurrentHTTPGets(urls, config.HTTP, config.Throttle, quit)
+	results := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
 	for {
 		select {
 		case result, channelOpen := <-results:
