@@ -12,6 +12,13 @@ import (
 	"github.com/yterajima/go-sitemap"
 )
 
+// CrawlResult is the result from a single crawling
+type CrawlResult struct {
+	URL        string
+	StatusCode int
+	Time       time.Duration
+}
+
 // CrawlStats holds crawling related information: status codes, time
 // and totals
 type CrawlStats struct {
@@ -19,6 +26,7 @@ type CrawlStats struct {
 	StatusCodes    map[int]int
 	Average200Time time.Duration
 	Max200Time     time.Duration
+	Non200Urls     []CrawlResult
 }
 
 // CrawlConfig holds crawling configuration.
@@ -65,6 +73,9 @@ func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 		}
 	}
 
+	stats.Non200Urls = append(stats.Non200Urls, statsA.Non200Urls...)
+	stats.Non200Urls = append(stats.Non200Urls, statsB.Non200Urls...)
+
 	return
 }
 
@@ -78,6 +89,17 @@ func PrintSummary(stats CrawlStats) {
 	for code, count := range stats.StatusCodes {
 		log.Info("    status-", code, ": ", count)
 	}
+
+	log.Info("")
+	log.Info("status-errors-detail:")
+	if len(stats.Non200Urls) == 0 {
+		log.Info("    - none")
+	} else {
+		for _, crawlResult := range stats.Non200Urls {
+			log.Info("    - ", crawlResult.StatusCode, ": ", crawlResult.URL)
+		}
+	}
+
 	log.Info("")
 	log.Info("server-time: ")
 	log.Info("    avg-time: ", int(stats.Average200Time/time.Millisecond), "ms")
@@ -173,21 +195,31 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 				return
 			}
 
-			stats.Total++
-			if result.Err != nil {
-				stats.StatusCodes[0]++
-			} else {
-				stats.StatusCodes[result.Response.StatusCode]++
+			updateCrawlStats(result, &stats, &serverTimeSum)
+		}
+	}
+}
 
-				if result.Response.StatusCode == 200 {
-					serverTime := result.Result.Total(result.EndTime)
-					serverTimeSum += serverTime
+func updateCrawlStats(result *HTTPResponse, stats *CrawlStats, totalTime *time.Duration) {
+	stats.Total++
+	if result.Err != nil {
+		stats.StatusCodes[0]++
+	} else {
+		stats.StatusCodes[result.Response.StatusCode]++
 
-					if serverTime > stats.Max200Time {
-						stats.Max200Time = serverTime
-					}
-				}
+		serverTime := result.Result.Total(result.EndTime)
+		if result.Response.StatusCode == 200 {
+			*totalTime += serverTime
+
+			if serverTime > stats.Max200Time {
+				stats.Max200Time = serverTime
 			}
+		} else {
+			stats.Non200Urls = append(stats.Non200Urls, CrawlResult{
+				URL:        result.URL,
+				Time:       serverTime,
+				StatusCode: result.Response.StatusCode,
+			})
 		}
 	}
 }
