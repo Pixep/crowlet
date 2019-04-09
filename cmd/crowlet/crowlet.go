@@ -202,6 +202,7 @@ func start(c *cli.Context) error {
 
 	if stats.Total != stats.StatusCodes[200] {
 		exitCode = c.Int("non-200-error")
+		return nil
 	}
 
 	maxResponseTime := c.Int("response-time-max")
