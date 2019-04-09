@@ -14,9 +14,9 @@ import (
 
 // CrawlResult is the result from a single crawling
 type CrawlResult struct {
-	URL        string
-	StatusCode int
-	Time       time.Duration
+	URL        string        `json:"url"`
+	StatusCode int           `json:"status-code"`
+	Time       time.Duration `json:"server-time"`
 }
 
 // CrawlStats holds crawling related information: status codes, time
@@ -77,34 +77,6 @@ func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 	stats.Non200Urls = append(stats.Non200Urls, statsB.Non200Urls...)
 
 	return
-}
-
-// PrintSummary prints a summary of HTTP response codes
-func PrintSummary(stats CrawlStats) {
-	log.Info("-------- Summary -------")
-	log.Info("general:")
-	log.Info("    crawled: ", stats.Total)
-	log.Info("")
-	log.Info("status:")
-	for code, count := range stats.StatusCodes {
-		log.Info("    status-", code, ": ", count)
-	}
-
-	log.Info("")
-	log.Info("status-errors-detail:")
-	if len(stats.Non200Urls) == 0 {
-		log.Info("    - none")
-	} else {
-		for _, crawlResult := range stats.Non200Urls {
-			log.Info("    - ", crawlResult.StatusCode, ": ", crawlResult.URL)
-		}
-	}
-
-	log.Info("")
-	log.Info("server-time: ")
-	log.Info("    avg-time: ", int(stats.Average200Time/time.Millisecond), "ms")
-	log.Info("    max-time: ", int(stats.Max200Time/time.Millisecond), "ms")
-	log.Info("------------------------")
 }
 
 func addInterruptHandlers() chan struct{} {
