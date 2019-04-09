@@ -75,6 +75,13 @@ If any page from the sitemap returns a non `200` status code, crowlet will retur
 docker run -it --rm aleravat/crowlet --non-200-error 150 https://foo.bar/sitemap.xml
 ```
 
+The `--json` flag can be used, as well as `--summary-only` for an easy parsing of the output.
+
+```
+./crowlet --json --summary-only https://google.com/sitemap.xml
+{"total":{"crawled":43},"status":{"status-codes":{"200":43},"errors":null},"response-time":{"avg-time-ms":87,"max-time-ms":418}}
+```
+
 #### Response time monitoring
 
 The `--response-time-max` option can be used to indicate a maximum server total time, or crowlet will return with `--response-time-error` return code. Note that if any page return a status code different from 200, the `--non-200-error` code will be returned instead.
