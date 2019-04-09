@@ -188,13 +188,16 @@ func start(c *cli.Context) error {
 		}
 	}
 
-	summaryOnly := c.Bool("summary-only")
-	if summaryOnly {
-		log.SetLevel(log.InfoLevel)
-	}
-	crawler.PrintSummary(stats)
-	if summaryOnly {
-		log.SetLevel(log.FatalLevel)
+	if !c.GlobalBool("quiet") {
+		if c.GlobalBool("json") {
+			crawler.PrintJSONSummary(stats)
+		} else {
+			crawler.PrintSummary(stats)
+		}
+
+		if c.Bool("summary-only") {
+			log.SetLevel(log.FatalLevel)
+		}
 	}
 
 	if stats.Total != stats.StatusCodes[200] {
