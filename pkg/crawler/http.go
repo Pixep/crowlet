@@ -99,7 +99,7 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 // ConcurrentHTTPGetter allows concurrent execution of an HTTPGetter
 type ConcurrentHTTPGetter interface {
 	ConcurrentHTTPGet(urls []string, config HTTPConfig, maxConcurrent int,
-		quit chan struct{}) <-chan *HTTPResponse
+		quit <-chan struct{}) <-chan *HTTPResponse
 }
 
 // BaseConcurrentHTTPGetter implements HTTPGetter interface using net/http package
@@ -108,38 +108,45 @@ type BaseConcurrentHTTPGetter struct {
 }
 
 // ConcurrentHTTPGet will GET the urls passed and result the results of the crawling
-func (getter *BaseConcurrentHTTPGetter) ConcurrentHTTPGet(urls []string, config HTTPConfig, maxConcurrent int,
-	quit chan struct{}) <-chan *HTTPResponse {
+func (getter *BaseConcurrentHTTPGetter) ConcurrentHTTPGet(urls []string, config HTTPConfig,
+	maxConcurrent int, quit <-chan struct{}) <-chan *HTTPResponse {
+
 	resultChan := make(chan *HTTPResponse, len(urls))
-	httpResources := make(chan int, maxConcurrent-1)
 
-	go func() {
-		var wg sync.WaitGroup
-
-		defer func() {
-			wg.Wait()
-			close(resultChan)
-		}()
-
-		for _, url := range urls {
-			select {
-			case <-quit:
-				log.Info("Waiting for workers to finish...")
-				return
-			case httpResources <- 1:
-				wg.Add(1)
-
-				go func(url string) {
-					defer func() {
-						<-httpResources
-						wg.Done()
-					}()
-
-					resultChan <- getter.Get(url, config)
-				}(url)
-			}
-		}
-	}()
+	go RunConcurrentGet(getter.Get, urls, config, maxConcurrent, resultChan, quit)
 
 	return resultChan
+}
+
+// RunConcurrentGet runs multiple HTTP requests in parallel, and returns the
+// result in resultChan
+func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
+	maxConcurrent int, resultChan chan<- *HTTPResponse, quit <-chan struct{}) {
+
+	httpResources := make(chan int, maxConcurrent-1)
+	var wg sync.WaitGroup
+
+	defer func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	for _, url := range urls {
+		select {
+		case <-quit:
+			log.Info("Waiting for workers to finish...")
+			return
+		case httpResources <- 1:
+			wg.Add(1)
+
+			go func(url string) {
+				defer func() {
+					<-httpResources
+					wg.Done()
+				}()
+
+				resultChan <- httpGet(url, config)
+			}(url)
+		}
+	}
 }
