@@ -123,7 +123,7 @@ func (getter *BaseConcurrentHTTPGetter) ConcurrentHTTPGet(urls []string, config 
 func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
 	maxConcurrent int, resultChan chan<- *HTTPResponse, quit <-chan struct{}) {
 
-	httpResources := make(chan int, maxConcurrent-1)
+	httpResources := make(chan int, maxConcurrent)
 	var wg sync.WaitGroup
 
 	defer func() {
