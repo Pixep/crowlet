@@ -9,7 +9,7 @@ DOCKERFILE_DIR := $(WORKING_DIR)/build/package
 
 .DEFAULT_GOAL := build
 
-.PHONY: build push
+.PHONY: build push tests
 
 install-deps:: ## Download and installs dependencies
 		@go get ./cmd/crowlet/...
@@ -23,6 +23,9 @@ build-static-linux:: install-deps ## Builds a static linux binary
 			-o bin/crowlet \
 			-a -ldflags '-extldflags "-static"' \
 				cmd/crowlet/crowlet.go
+
+tests:: ## Run tests
+		@cd test && go test
 
 install:: ## Build and install crowlet locally
 		@cd cmd/crowlet/ && go install .
