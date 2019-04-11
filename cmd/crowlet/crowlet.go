@@ -99,6 +99,11 @@ func main() {
 			EnvVar: "CRAWL_THROTTLE",
 			Value:  5,
 		},
+		cli.IntFlag{
+			Name:  "timeout,y",
+			Usage: "timeout duration for requests, in milliseconds",
+			Value: 20000,
+		},
 		cli.BoolFlag{
 			Name:  "quiet,silent,q",
 			Usage: "suppress all normal output",
@@ -161,8 +166,9 @@ func start(c *cli.Context) error {
 		Throttle: c.Int("throttle"),
 		Host:     c.String("host"),
 		HTTP: crawler.HTTPConfig{
-			User: c.String("user"),
-			Pass: c.String("pass"),
+			User:    c.String("user"),
+			Pass:    c.String("pass"),
+			Timeout: time.Duration(c.Int("timeout")) * time.Millisecond,
 		},
 		HTTPGetter: &crawler.BaseConcurrentHTTPGetter{
 			Get: crawler.HTTPGet,

@@ -22,8 +22,9 @@ type HTTPResponse struct {
 
 // HTTPConfig hold settings used to get pages via HTTP/S
 type HTTPConfig struct {
-	User string
-	Pass string
+	User    string
+	Pass    string
+	Timeout time.Duration
 }
 
 // HTTPGetter performs a single HTTP/S  to the url, and return information
@@ -54,7 +55,7 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	}
 
 	client := http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: config.Timeout,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
