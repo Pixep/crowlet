@@ -53,7 +53,9 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 		req.SetBasicAuth(config.User, config.Pass)
 	}
 
-	client := http.DefaultClient
+	client := http.Client{
+		Timeout: 20 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error(err)
