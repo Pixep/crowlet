@@ -146,11 +146,11 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 		config.Throttle = 1
 	}
 
-	var serverTimeSum time.Duration
+	var server200TimeSum time.Duration
 	defer func() {
 		total200 := stats.StatusCodes[200]
 		if total200 > 0 {
-			stats.Average200Time = serverTimeSum / time.Duration(total200)
+			stats.Average200Time = server200TimeSum / time.Duration(total200)
 		}
 	}()
 
@@ -163,7 +163,7 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 				return
 			}
 
-			updateCrawlStats(result, &stats, &serverTimeSum)
+			updateCrawlStats(result, &stats, &server200TimeSum)
 		}
 	}
 }
