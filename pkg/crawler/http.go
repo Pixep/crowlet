@@ -13,11 +13,12 @@ import (
 
 // HTTPResponse holds information from a GET to a specific URL
 type HTTPResponse struct {
-	URL      string
-	Response *http.Response
-	Result   httpstat.Result
-	EndTime  time.Time
-	Err      error
+	URL        string
+	Response   *http.Response
+	Result     httpstat.Result
+	StatusCode int
+	EndTime    time.Time
+	Err        error
 }
 
 // HTTPConfig hold settings used to get pages via HTTP/S
@@ -57,7 +58,21 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	client := http.Client{
 		Timeout: config.Timeout,
 	}
+
 	resp, err := client.Do(req)
+	defer func() {
+		response.EndTime = time.Now()
+		response.Response = resp
+		response.Result = result
+
+		if resp == nil {
+			response.StatusCode = 0
+		} else {
+			response.StatusCode = response.Response.StatusCode
+		}
+		PrintResult(response)
+	}()
+
 	if err != nil {
 		log.Error(err)
 		response.Err = err
@@ -66,35 +81,8 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 
 	// Explicitly Drain & close the body to allow faster
 	// reuse of the transport
-	defer func() {
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
-	}()
-
-	end := time.Now()
-	total := int(result.Total(end).Round(time.Millisecond) / time.Millisecond)
-
-	response.EndTime = end
-	response.Response = resp
-	response.Result = result
-
-	if log.GetLevel() == log.DebugLevel {
-		log.WithFields(log.Fields{
-			"status":  resp.StatusCode,
-			"dns":     int(result.DNSLookup / time.Millisecond),
-			"tcpconn": int(result.TCPConnection / time.Millisecond),
-			"tls":     int(result.TLSHandshake / time.Millisecond),
-			"server":  int(result.ServerProcessing / time.Millisecond),
-			"content": int(result.ContentTransfer(end) / time.Millisecond),
-			"time":    total,
-			"close":   end,
-		}).Debug("url=" + url)
-	} else {
-		log.WithFields(log.Fields{
-			"status":     resp.StatusCode,
-			"total-time": total,
-		}).Info("url=" + url)
-	}
+	io.Copy(ioutil.Discard, resp.Body)
+	resp.Body.Close()
 
 	return
 }
@@ -151,5 +139,28 @@ func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
 				resultChan <- httpGet(url, config)
 			}(url)
 		}
+	}
+}
+
+// PrintResult will print information relative to the HTTPResponse
+func PrintResult(result *HTTPResponse) {
+	total := int(result.Result.Total(result.EndTime).Round(time.Millisecond) / time.Millisecond)
+
+	if log.GetLevel() == log.DebugLevel {
+		log.WithFields(log.Fields{
+			"status":  result.StatusCode,
+			"dns":     int(result.Result.DNSLookup / time.Millisecond),
+			"tcpconn": int(result.Result.TCPConnection / time.Millisecond),
+			"tls":     int(result.Result.TLSHandshake / time.Millisecond),
+			"server":  int(result.Result.ServerProcessing / time.Millisecond),
+			"content": int(result.Result.ContentTransfer(result.EndTime) / time.Millisecond),
+			"time":    total,
+			"close":   result.EndTime,
+		}).Debug("url=" + result.URL)
+	} else {
+		log.WithFields(log.Fields{
+			"status":     result.StatusCode,
+			"total-time": total,
+		}).Info("url=" + result.URL)
 	}
 }
