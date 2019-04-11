@@ -26,7 +26,7 @@ func TestRunConcurrentGet(t *testing.T) {
 
 	waitMutex.Lock()
 	go crawler.RunConcurrentGet(mockHTTPGet, urls, crawler.HTTPConfig{}, maxConcurrency, resultChan, quitChan)
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	if len(fetchedUrls) != maxConcurrency {
 		t.Fatal("Incorrect channel length of", len(fetchedUrls))
