@@ -42,18 +42,9 @@ type Crawler struct {
 }
 
 // MergeCrawlStats merges two sets of crawling statistics together.
-// The average time will be an average of the two averages, and not an average
-// of all individual times.
 func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
+	stats.StatusCodes = make(map[int]int)
 	stats.Total = statsA.Total + statsB.Total
-	if statsA.Total == 0 && statsB.Total != 0 {
-		stats.Average200Time = statsB.Average200Time
-	} else if statsB.Total == 0 {
-		stats.Average200Time = statsA.Average200Time
-	} else {
-		// TODO: This is actually *not* an average anymore...
-		stats.Average200Time = (statsA.Average200Time + statsB.Average200Time) / 2
-	}
 
 	if statsA.Max200Time > statsB.Max200Time {
 		stats.Max200Time = statsA.Max200Time
@@ -62,15 +53,20 @@ func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 	}
 
 	if statsA.StatusCodes != nil {
-		stats.StatusCodes = statsA.StatusCodes
-	} else {
-		stats.StatusCodes = make(map[int]int)
+		for key, value := range statsA.StatusCodes {
+			stats.StatusCodes[key] = stats.StatusCodes[key] + value
+		}
 	}
-
 	if statsB.StatusCodes != nil {
 		for key, value := range statsB.StatusCodes {
 			stats.StatusCodes[key] = stats.StatusCodes[key] + value
 		}
+	}
+
+	if statsA.Average200Time != 0 || statsB.Average200Time != 0 {
+		total200ns := (statsA.Average200Time.Nanoseconds()*int64(statsA.StatusCodes[200]) +
+			statsB.Average200Time.Nanoseconds()*int64(statsB.StatusCodes[200]))
+		stats.Average200Time = time.Duration(total200ns/int64(stats.StatusCodes[200])) * time.Nanosecond
 	}
 
 	stats.Non200Urls = append(stats.Non200Urls, statsA.Non200Urls...)
