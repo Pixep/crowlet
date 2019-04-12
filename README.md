@@ -107,6 +107,7 @@ GLOBAL OPTIONS:
    --iterations value, -i value           number of crawling iterations for the whole sitemap (default: 1)
    --wait-interval value, -w value        wait interval in seconds between sitemap crawling iterations (default: 0) [$CRAWL_WAIT_INTERVAL]
    --throttle value, -t value             number of http requests to do at once (default: 5) [$CRAWL_THROTTLE]
+   --timeout value, -y value              timeout duration for requests, in milliseconds (default: 20000)
    --quiet, --silent, -q                  suppress all normal output
    --json, -j                             output using JSON format (experimental)
    --non-200-error value, -e value        error code to use if any non-200 response if encountered (default: 1)
