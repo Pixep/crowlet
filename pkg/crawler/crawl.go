@@ -172,7 +172,10 @@ func updateCrawlStats(result *HTTPResponse, stats *CrawlStats, total200Time *tim
 	stats.Total++
 
 	statusCode := result.StatusCode
-	serverTime := result.Result.Total(result.EndTime)
+	serverTime := time.Duration(0)
+	if result.Result != nil {
+		serverTime = result.Result.Total(result.EndTime)
+	}
 
 	stats.StatusCodes[statusCode]++
 

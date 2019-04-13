@@ -15,7 +15,7 @@ import (
 type HTTPResponse struct {
 	URL        string
 	Response   *http.Response
-	Result     httpstat.Result
+	Result     *httpstat.Result
 	StatusCode int
 	EndTime    time.Time
 	Err        error
@@ -32,28 +32,40 @@ type HTTPConfig struct {
 // related to the result as an HTTPResponse
 type HTTPGetter func(url string, config HTTPConfig) (response *HTTPResponse)
 
+func createRequest(url string) (*http.Request, *httpstat.Result, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error(err)
+		return nil, nil, err
+	}
+
+	// create a httpstat powered context
+	result := &httpstat.Result{}
+	ctx := httpstat.WithHTTPStat(req.Context(), result)
+	req = req.WithContext(ctx)
+
+	return req, result, nil
+}
+
+func configureRequest(req *http.Request, config HTTPConfig) {
+	if len(config.User) > 0 {
+		req.SetBasicAuth(config.User, config.Pass)
+	}
+}
+
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
 func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	response = &HTTPResponse{
 		URL: url,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, result, err := createRequest(url)
 	if err != nil {
-		log.Error(err)
 		response.Err = err
 		return
 	}
 
-	// create a httpstat powered context
-	var result httpstat.Result
-	ctx := httpstat.WithHTTPStat(req.Context(), &result)
-	req = req.WithContext(ctx)
-
-	// set http basic if provided
-	if len(config.User) > 0 {
-		req.SetBasicAuth(config.User, config.Pass)
-	}
+	configureRequest(req, config)
 
 	client := http.Client{
 		Timeout: config.Timeout,
