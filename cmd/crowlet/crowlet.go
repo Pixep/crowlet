@@ -64,7 +64,7 @@ func main() {
 	app.After = afterApp
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "host",
+			Name:   "override-host",
 			Usage:  "override the hostname used in sitemap urls",
 			EnvVar: "CRAWL_HOST",
 		},
@@ -176,7 +176,7 @@ func start(c *cli.Context) error {
 
 	config := crawler.CrawlConfig{
 		Throttle: c.Int("throttle"),
-		Host:     c.String("host"),
+		Host:     c.String("override-host"),
 		HTTP: crawler.HTTPConfig{
 			User:    c.String("user"),
 			Pass:    c.String("pass"),
