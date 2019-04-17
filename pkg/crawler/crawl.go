@@ -203,6 +203,7 @@ func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig 
 		CrawlImages:        false,
 		CrawlHyperlinks:    false}
 
+	log.Info("Found ", len(linkedUrls), " relevant linked URL(s)")
 	linksResults, linksStats, linksServer200TimeSum := crawlUrls(linkedUrls, linksConfig)
 
 	for i, linkResult := range linksStats.Non200Urls {
