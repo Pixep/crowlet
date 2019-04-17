@@ -82,6 +82,8 @@ The `--json` flag can be used, as well as `--summary-only` for an easy parsing o
 {"total":{"crawled":43},"status":{"status-codes":{"200":43},"errors":null},"response-time":{"avg-time-ms":87,"max-time-ms":418}}
 ```
 
+The `--crawl-images`, `--crawl-hyperlinks` and `--crawl-external` options can be used to extends the monitoring to internal (or even external) links found in the original sitemap pages. Their statistics will be added to the final report.
+
 #### Response time monitoring
 
 The `--response-time-max` option can be used to indicate a maximum server total time, or crowlet will return with `--response-time-error` return code. Note that if any page return a status code different from 200, the `--non-200-error` code will be returned instead.
@@ -100,9 +102,9 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --host value                           override the hostname used in sitemap urls [$CRAWL_HOST]
-   --user value, -u value                 username for http basic authentication [$CRAWL_HTTP_USER]
-   --pass value, -p value                 password for http basic authentication [$CRAWL_HTTP_PASSWORD]
+   --crawl-hyperlinks                     follow and test hyperlinks ('a' tags href)
+   --crawl-images                         follow and test image links ('img' tags src)
+   --crawl-external                       follow and test external links. Use in combination with 'follow-hyperlinks' and/or 'follow-images'
    --forever, -f                          crawl the sitemap's URLs forever... or until stopped
    --iterations value, -i value           number of crawling iterations for the whole sitemap (default: 1)
    --wait-interval value, -w value        wait interval in seconds between sitemap crawling iterations (default: 0) [$CRAWL_WAIT_INTERVAL]
@@ -114,6 +116,9 @@ GLOBAL OPTIONS:
    --response-time-error value, -l value  error code to use if the maximum response time is overrun (default: 1)
    --response-time-max value, -m value    maximum response time of URLs, in milliseconds, before considered an error (default: 0)
    --summary-only                         print only the summary
+   --override-host value                  override the hostname used in sitemap urls [$CRAWL_HOST]
+   --user value, -u value                 username for http basic authentication [$CRAWL_HTTP_USER]
+   --pass value, -p value                 password for http basic authentication [$CRAWL_HTTP_PASSWORD]
    --pre-cmd value                        command(s) to run before starting crawler
    --post-cmd value                       command(s) to run after crawler finishes
    --debug                                run in debug mode
