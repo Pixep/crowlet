@@ -68,7 +68,11 @@ func PrintSummary(stats CrawlStats) {
 		log.Info("    - none")
 	} else {
 		for _, crawlResult := range stats.Non200Urls {
-			log.Info("    - ", crawlResult.StatusCode, ": ", crawlResult.URL)
+			log.Info("    - ", crawlResult.URL, ":")
+			log.Info("        status-code: ", crawlResult.StatusCode)
+			for _, linkingURL := range crawlResult.LinkingURLs {
+				log.Info("        linking-url: ", linkingURL)
+			}
 		}
 	}
 

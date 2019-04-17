@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -19,13 +20,15 @@ type HTTPResponse struct {
 	StatusCode int
 	EndTime    time.Time
 	Err        error
+	Links      []Link
 }
 
 // HTTPConfig hold settings used to get pages via HTTP/S
 type HTTPConfig struct {
-	User    string
-	Pass    string
-	Timeout time.Duration
+	User       string
+	Pass       string
+	Timeout    time.Duration
+	ParseLinks bool
 }
 
 // HTTPGetter performs a single HTTP/S  to the url, and return information
@@ -54,12 +57,12 @@ func configureRequest(req *http.Request, config HTTPConfig) {
 }
 
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
-func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
+func HTTPGet(urlStr string, config HTTPConfig) (response *HTTPResponse) {
 	response = &HTTPResponse{
-		URL: url,
+		URL: urlStr,
 	}
 
-	req, result, err := createRequest(url)
+	req, result, err := createRequest(urlStr)
 	if err != nil {
 		response.Err = err
 		return
@@ -72,15 +75,20 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 	}
 
 	resp, err := client.Do(req)
-	defer func() {
-		response.EndTime = time.Now()
-		response.Response = resp
-		response.Result = result
+	response.EndTime = time.Now()
+	response.Response = resp
+	response.Result = result
 
-		if resp == nil {
-			response.StatusCode = 0
-		} else {
-			response.StatusCode = response.Response.StatusCode
+	if resp == nil {
+		response.StatusCode = 0
+	} else {
+		response.StatusCode = response.Response.StatusCode
+	}
+
+	defer func() {
+		if resp != nil && !config.ParseLinks {
+			io.Copy(ioutil.Discard, resp.Body)
+			resp.Body.Close()
 		}
 		PrintResult(response)
 	}()
@@ -91,10 +99,18 @@ func HTTPGet(url string, config HTTPConfig) (response *HTTPResponse) {
 		return
 	}
 
-	// Explicitly Drain & close the body to allow faster
-	// reuse of the transport
-	io.Copy(ioutil.Discard, resp.Body)
-	resp.Body.Close()
+	if config.ParseLinks {
+		currentURL, err := url.Parse(urlStr)
+		if err != nil {
+			return
+		}
+
+		response.Links, err = ExtractLinks(resp.Body, *currentURL)
+		resp.Body.Close()
+		if err != nil {
+			return
+		}
+	}
 
 	return
 }

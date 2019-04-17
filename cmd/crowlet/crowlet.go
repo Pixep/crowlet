@@ -79,6 +79,18 @@ func main() {
 			EnvVar: "CRAWL_HTTP_PASSWORD",
 		},
 		cli.BoolFlag{
+			Name:  "crawl-hyperlinks",
+			Usage: "follow and test hyperlinks ('a' tags href)",
+		},
+		cli.BoolFlag{
+			Name:  "crawl-images",
+			Usage: "follow and test image links ('img' tags src)",
+		},
+		cli.BoolFlag{
+			Name:  "crawl-external",
+			Usage: "follow and test external links. Use in combination with 'follow-hyperlinks' and/or 'follow-images'",
+		},
+		cli.BoolFlag{
 			Name:  "forever,f",
 			Usage: "crawl the sitemap's URLs forever... or until stopped",
 		},
@@ -172,6 +184,11 @@ func start(c *cli.Context) error {
 		},
 		HTTPGetter: &crawler.BaseConcurrentHTTPGetter{
 			Get: crawler.HTTPGet,
+		},
+		Links: crawler.CrawlLinksConfig{
+			CrawlExternalLinks: c.Bool("crawl-external"),
+			CrawlImages:        c.Bool("crawl-images"),
+			CrawlHyperlinks:    c.Bool("crawl-hyperlinks"),
 		},
 	}
 

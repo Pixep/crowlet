@@ -14,9 +14,10 @@ import (
 
 // CrawlResult is the result from a single crawling
 type CrawlResult struct {
-	URL        string        `json:"url"`
-	StatusCode int           `json:"status-code"`
-	Time       time.Duration `json:"server-time"`
+	URL         string        `json:"url"`
+	StatusCode  int           `json:"status-code"`
+	Time        time.Duration `json:"server-time"`
+	LinkingURLs []string      `json:"linking-urls"`
 }
 
 // CrawlStats holds crawling related information: status codes, time
@@ -34,11 +35,15 @@ type CrawlConfig struct {
 	Throttle   int
 	Host       string
 	HTTP       HTTPConfig
+	Links      CrawlLinksConfig
 	HTTPGetter ConcurrentHTTPGetter
 }
 
-// Crawler provides crawling capabilities
-type Crawler struct {
+// CrawlLinksConfig holds the crawling policy for links
+type CrawlLinksConfig struct {
+	CrawlExternalLinks bool
+	CrawlHyperlinks    bool
+	CrawlImages        bool
 }
 
 // MergeCrawlStats merges two sets of crawling statistics together.
@@ -132,38 +137,97 @@ func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
 // and user/pass are optional basic auth credentials
 func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 	stopped bool, err error) {
-	stats.StatusCodes = make(map[int]int)
-	defer func() {
-		if stats.Total == 0 {
-			err = errors.New("No URL crawled")
-		} else if stats.Total != stats.StatusCodes[200] {
-			err = errors.New("Some URLs had a different status code than 200")
-		}
-	}()
-
 	if config.Throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		config.Throttle = 1
 	}
 
-	var server200TimeSum time.Duration
-	defer func() {
-		total200 := stats.StatusCodes[200]
-		if total200 > 0 {
-			stats.Average200Time = server200TimeSum / time.Duration(total200)
+	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
+		config.Links.CrawlImages
+	results, stats, server200TimeSum := crawlUrls(urls, config)
+
+	if config.HTTP.ParseLinks {
+		_, linksStats, linksServer200TimeSum := crawlLinks(results, urls, config)
+		stats = MergeCrawlStats(stats, linksStats)
+		server200TimeSum += linksServer200TimeSum
+	}
+
+	total200 := stats.StatusCodes[200]
+	if total200 > 0 {
+		stats.Average200Time = server200TimeSum / time.Duration(total200)
+	}
+
+	if stats.Total == 0 {
+		err = errors.New("No URL crawled")
+	} else if stats.Total != stats.StatusCodes[200] {
+		err = errors.New("Some URLs had a different status code than 200")
+	}
+
+	return
+}
+
+func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig CrawlConfig) ([]HTTPResponse, CrawlStats, time.Duration) {
+
+	linkedUrlsSet := make(map[string][]string)
+	for _, result := range sourceResults {
+		for _, link := range result.Links {
+			if link.IsExternal && !sourceConfig.Links.CrawlExternalLinks {
+				continue
+			}
+
+			if link.Type == Hyperlink && !sourceConfig.Links.CrawlHyperlinks {
+				continue
+			}
+
+			if link.Type == Image && !sourceConfig.Links.CrawlImages {
+				continue
+			}
+
+			linkedUrlsSet[link.TargetURL.String()] = append(linkedUrlsSet[link.TargetURL.String()], result.URL)
 		}
-	}()
+	}
+
+	for _, alreadyCrawledURL := range sourceURLs {
+		delete(linkedUrlsSet, alreadyCrawledURL)
+	}
+
+	linkedUrls := make([]string, 0, len(linkedUrlsSet))
+	for url := range linkedUrlsSet {
+		linkedUrls = append(linkedUrls, url)
+	}
+
+	linksConfig := sourceConfig
+	linksConfig.HTTP.ParseLinks = false
+	linksConfig.Links = CrawlLinksConfig{
+		CrawlExternalLinks: false,
+		CrawlImages:        false,
+		CrawlHyperlinks:    false}
+
+	linksResults, linksStats, linksServer200TimeSum := crawlUrls(linkedUrls, linksConfig)
+
+	for i, linkResult := range linksStats.Non200Urls {
+		linkResult.LinkingURLs = linkedUrlsSet[linkResult.URL]
+		linksStats.Non200Urls[i] = linkResult
+	}
+
+	return linksResults, linksStats, linksServer200TimeSum
+}
+
+func crawlUrls(urls []string, config CrawlConfig) (results []HTTPResponse,
+	stats CrawlStats, server200TimeSum time.Duration) {
 
 	quit := addInterruptHandlers()
-	results := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
+	stats.StatusCodes = make(map[int]int)
+	resultsChan := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
 	for {
 		select {
-		case result, channelOpen := <-results:
+		case result, channelOpen := <-resultsChan:
 			if !channelOpen {
 				return
 			}
 
 			updateCrawlStats(result, &stats, &server200TimeSum)
+			results = append(results, *result)
 		}
 	}
 }
