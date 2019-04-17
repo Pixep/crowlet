@@ -61,6 +61,7 @@ func main() {
 	app.Version = VERSION
 	app.Usage = "a basic sitemap.xml crawler"
 	app.Action = start
+	app.UsageText = "[global options] sitemap-url"
 	app.Before = beforeApp
 	app.After = afterApp
 	app.Flags = []cli.Flag{
