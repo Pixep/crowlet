@@ -35,7 +35,7 @@ func beforeApp(c *cli.Context) error {
 	if len(c.GlobalString("pre-cmd")) > 1 {
 		ok := exec.Exec(c.GlobalString("pre-cmd"))
 		if !ok {
-			log.Fatal("Failed to execute command")
+			log.Fatal("Failed to execute pre-execution command")
 		}
 	}
 
@@ -46,7 +46,7 @@ func afterApp(c *cli.Context) error {
 	if len(c.GlobalString("post-cmd")) > 1 {
 		ok := exec.Exec(c.GlobalString("post-cmd"))
 		if !ok {
-			log.Fatal("Failed to execute command")
+			log.Fatal("Failed to execute post-execution command")
 		}
 	}
 
