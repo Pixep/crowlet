@@ -28,7 +28,8 @@ func beforeApp(c *cli.Context) error {
 	}
 
 	if c.NArg() < 1 {
-		log.Fatal("sitemap url required")
+		log.Error("sitemap url required")
+		cli.ShowAppHelpAndExit(c, 2)
 	}
 
 	if len(c.GlobalString("pre-cmd")) > 1 {
