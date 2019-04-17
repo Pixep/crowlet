@@ -63,21 +63,6 @@ func main() {
 	app.Before = beforeApp
 	app.After = afterApp
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "override-host",
-			Usage:  "override the hostname used in sitemap urls",
-			EnvVar: "CRAWL_HOST",
-		},
-		cli.StringFlag{
-			Name:   "user,u",
-			Usage:  "username for http basic authentication",
-			EnvVar: "CRAWL_HTTP_USER",
-		},
-		cli.StringFlag{
-			Name:   "pass,p",
-			Usage:  "password for http basic authentication",
-			EnvVar: "CRAWL_HTTP_PASSWORD",
-		},
 		cli.BoolFlag{
 			Name:  "crawl-hyperlinks",
 			Usage: "follow and test hyperlinks ('a' tags href)",
@@ -145,6 +130,21 @@ func main() {
 		cli.BoolFlag{
 			Name:  "summary-only",
 			Usage: "print only the summary",
+		},
+		cli.StringFlag{
+			Name:   "override-host",
+			Usage:  "override the hostname used in sitemap urls",
+			EnvVar: "CRAWL_HOST",
+		},
+		cli.StringFlag{
+			Name:   "user,u",
+			Usage:  "username for http basic authentication",
+			EnvVar: "CRAWL_HTTP_USER",
+		},
+		cli.StringFlag{
+			Name:   "pass,p",
+			Usage:  "password for http basic authentication",
+			EnvVar: "CRAWL_HTTP_PASSWORD",
 		},
 		cli.StringFlag{
 			Name:  "pre-cmd",
