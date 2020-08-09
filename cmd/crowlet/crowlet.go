@@ -2,6 +2,8 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	exec "github.com/Pixep/crowlet/internal/pkg"
@@ -166,6 +168,45 @@ func main() {
 	os.Exit(exitCode)
 }
 
+func addInterruptHandlers() chan struct{} {
+	stop := make(chan struct{})
+	osSignal := make(chan os.Signal)
+	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(osSignal, os.Interrupt, syscall.SIGINT)
+
+	go func() {
+		<-osSignal
+		log.Warn("Interrupt signal received")
+		close(stop)
+	}()
+
+	return stop
+}
+
+func runMainLoop(urls []string, config crawler.CrawlConfig, iterations int, forever bool, waitInterval int) (stats crawler.CrawlStats) {
+	for i := 0; i < iterations || forever; i++ {
+		if i != 0 {
+			time.Sleep(time.Duration(waitInterval) * time.Second)
+		}
+
+		quit := addInterruptHandlers()
+		itStats, err := crawler.AsyncCrawl(urls, config, quit)
+
+		stats = crawler.MergeCrawlStats(stats, itStats)
+
+		if err != nil {
+			log.Warn(err)
+		}
+
+		select {
+		case <-quit:
+			return
+		}
+	}
+
+	return
+}
+
 func start(c *cli.Context) error {
 	sitemapURL := c.Args().Get(0)
 	log.Info("Crawling ", sitemapURL)
@@ -194,25 +235,7 @@ func start(c *cli.Context) error {
 		},
 	}
 
-	var stats crawler.CrawlStats
-	for i := 0; i < c.Int("iterations") || c.Bool("forever"); i++ {
-		if i != 0 {
-			time.Sleep(time.Duration(c.Int("wait-interval")) * time.Second)
-		}
-
-		itStats, stop, err := crawler.AsyncCrawl(urls, config)
-
-		stats = crawler.MergeCrawlStats(stats, itStats)
-
-		if err != nil {
-			log.Warn(err)
-		}
-
-		if stop {
-			break
-		}
-	}
-
+	stats := runMainLoop(urls, config, c.Int("iterations"), c.Bool("forever"), c.Int("wait-interval"))
 	if !c.GlobalBool("quiet") {
 		if c.GlobalBool("json") {
 			crawler.PrintJSONSummary(stats)
