@@ -3,9 +3,6 @@ package crawler
 import (
 	"errors"
 	"net/url"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -80,21 +77,6 @@ func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 	return
 }
 
-func addInterruptHandlers() chan struct{} {
-	stop := make(chan struct{})
-	osSignal := make(chan os.Signal)
-	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)
-	signal.Notify(osSignal, os.Interrupt, syscall.SIGINT)
-
-	go func() {
-		<-osSignal
-		log.Warn("Interrupt signal received")
-		stop <- struct{}{}
-	}()
-
-	return stop
-}
-
 // GetSitemapUrls returns all URLs found from the sitemap passed as parameter.
 // This function will only retrieve URLs in the sitemap pointed, and in
 // sitemaps directly listed (i.e. only 1 level deep or less)
@@ -135,8 +117,7 @@ func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
 // information. Throttle is the maximum number of parallel HTTP requests.
 // Host overrides the hostname used in the sitemap if provided,
 // and user/pass are optional basic auth credentials
-func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
-	stopped bool, err error) {
+func AsyncCrawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats CrawlStats, err error) {
 	if config.Throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		config.Throttle = 1
@@ -144,12 +125,17 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 
 	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
 		config.Links.CrawlImages
-	results, stats, server200TimeSum := crawlUrls(urls, config)
+	results, stats, server200TimeSum := crawlUrls(urls, config, quit)
 
-	if config.HTTP.ParseLinks {
-		_, linksStats, linksServer200TimeSum := crawlLinks(results, urls, config)
-		stats = MergeCrawlStats(stats, linksStats)
-		server200TimeSum += linksServer200TimeSum
+	select {
+	case <-quit:
+		break
+	default:
+		if config.HTTP.ParseLinks {
+			_, linksStats, linksServer200TimeSum := crawlLinks(results, urls, config, quit)
+			stats = MergeCrawlStats(stats, linksStats)
+			server200TimeSum += linksServer200TimeSum
+		}
 	}
 
 	total200 := stats.StatusCodes[200]
@@ -166,7 +152,8 @@ func AsyncCrawl(urls []string, config CrawlConfig) (stats CrawlStats,
 	return
 }
 
-func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig CrawlConfig) ([]HTTPResponse, CrawlStats, time.Duration) {
+func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig CrawlConfig, quit <-chan struct{}) ([]HTTPResponse,
+	CrawlStats, time.Duration) {
 
 	linkedUrlsSet := make(map[string][]string)
 	for _, result := range sourceResults {
@@ -204,7 +191,7 @@ func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig 
 		CrawlHyperlinks:    false}
 
 	log.Info("Found ", len(linkedUrls), " relevant linked URL(s)")
-	linksResults, linksStats, linksServer200TimeSum := crawlUrls(linkedUrls, linksConfig)
+	linksResults, linksStats, linksServer200TimeSum := crawlUrls(linkedUrls, linksConfig, quit)
 
 	for i, linkResult := range linksStats.Non200Urls {
 		linkResult.LinkingURLs = linkedUrlsSet[linkResult.URL]
@@ -214,10 +201,9 @@ func crawlLinks(sourceResults []HTTPResponse, sourceURLs []string, sourceConfig 
 	return linksResults, linksStats, linksServer200TimeSum
 }
 
-func crawlUrls(urls []string, config CrawlConfig) (results []HTTPResponse,
+func crawlUrls(urls []string, config CrawlConfig, quit <-chan struct{}) (results []HTTPResponse,
 	stats CrawlStats, server200TimeSum time.Duration) {
 
-	quit := addInterruptHandlers()
 	stats.StatusCodes = make(map[int]int)
 	resultsChan := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
 	for {
