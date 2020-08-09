@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Exec runs a system command
