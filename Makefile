@@ -9,13 +9,13 @@ DOCKERFILE_DIR := $(WORKING_DIR)/build/package
 
 .DEFAULT_GOAL := build
 
-.PHONY: build push tests
+.PHONY: install-deps build build-static-linux test install clean docker-run docker-build docker-push docker-release
 
 install-deps:: ## Download and installs dependencies
 		@go get ./cmd/crowlet/...
 
 build:: install-deps ## Build command line binary
-		@go build cmd/crowlet/crowlet.go
+		@go build ./cmd/crowlet/
 
 build-static-linux:: install-deps ## Builds a static linux binary
 		@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
@@ -24,11 +24,15 @@ build-static-linux:: install-deps ## Builds a static linux binary
 			-a -ldflags '-extldflags "-static"' \
 				cmd/crowlet/crowlet.go
 
-tests:: ## Run tests
+test:: ## Run tests
 		@cd test && go test
 
 install:: ## Build and install crowlet locally
 		@cd cmd/crowlet/ && go install .
+
+clean:: ## Clean build files
+		@go clean cmd/crowlet/crowlet.go
+		@rm crowlet
 
 docker-run:: ## Runs the docker image
 		@docker run \
