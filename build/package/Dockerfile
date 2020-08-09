@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine as builder
+FROM golang:1.14-alpine as builder
 
 RUN apk add --update --no-cache git gcc musl-dev make
 RUN go get github.com/Pixep/crowlet/cmd/crowlet
