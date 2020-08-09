@@ -7,7 +7,7 @@ import (
 	exec "github.com/Pixep/crowlet/internal/pkg"
 	"github.com/Pixep/crowlet/pkg/crawler"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
