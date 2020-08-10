@@ -1,26 +1,21 @@
-DOCKER_REGISTRY = index.docker.io
 IMAGE_NAME = crowlet
 IMAGE_VERSION = latest
 IMAGE_ORG = aleravat
-IMAGE_TAG = $(DOCKER_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_VERSION)
-
-WORKING_DIR := $(shell pwd)
-DOCKERFILE_DIR := $(WORKING_DIR)/build/package
+IMAGE_TAG = $(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_VERSION)
 
 .DEFAULT_GOAL := build
 
 .PHONY: install-deps build build-static-linux test install clean docker-run docker-build docker-push docker-release
 
 install-deps:: ## Download and installs dependencies
-		@go get ./cmd/crowlet/...
+		@go get ./...
 
 build:: install-deps ## Build command line binary
-		@go build ./cmd/crowlet/
+		@go build cmd/crowlet/crowlet.go
 
-build-static-linux:: install-deps ## Builds a static linux binary
-		@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+build-static:: install-deps ## Builds a static binary
+		@CGO_ENABLED=0 \
 			go build \
-			-o bin/crowlet \
 			-a -ldflags '-extldflags "-static"' \
 				cmd/crowlet/crowlet.go
 
@@ -35,14 +30,11 @@ clean:: ## Clean build files
 		@rm crowlet
 
 docker-run:: ## Runs the docker image
-		@docker run \
-			-it \
-			$(DOCKER_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_VERSION)
+		@docker run -it --rm $(IMAGE_TAG) $(ARGS)
 
 docker-build:: ## Builds the docker image
 		@echo Building $(IMAGE_TAG)
-		@docker build --pull \
-		-t $(IMAGE_TAG) $(DOCKERFILE_DIR)
+		@docker build --pull -t $(IMAGE_TAG) .
 
 docker-push:: ## Pushes the docker image to the registry
 		@echo Pushing $(IMAGE_TAG)
