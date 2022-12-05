@@ -201,6 +201,8 @@ func runMainLoop(urls []string, config crawler.CrawlConfig, iterations int, fore
 		select {
 		case <-quit:
 			return
+		default:
+			// Don't block main loop
 		}
 	}
 
