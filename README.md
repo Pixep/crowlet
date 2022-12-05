@@ -1,14 +1,16 @@
 # Crowlet
-![goreportcard](https://goreportcard.com/badge/github.com/Pixep/crowlet) ![dockerbuild](https://img.shields.io/docker/cloud/build/aleravat/crowlet.svg)
+
+![goreportcard](https://goreportcard.com/badge/github.com/Pixep/crowlet)
 
 Crowlet is a `sitemap.xml` crawler, that can be used as cache warmer, or as a monitoring tool. When ran, it will report information relative to the crawling. Uses include:
+
 - Manual website health check
 - Website status and response time monitoring
 - Periodic warm up of a server's cache
 
 ## Getting Started
 
-The simplest option is to run the tool from its docker image `aleravat/crowlet`. It can otherwise be used from command line as  `crowlet`.
+The simplest option is to run the tool from its docker image `aleravat/crowlet`. It can otherwise be used from command line as `crowlet`.
 
 ### Basic usage
 
@@ -61,7 +63,7 @@ INFO[0021] ------------------------
 
 You can use this tool as to warm cache for all URLs in a sitemap using the `--forever` option. This will keep crawling the sitemap forever, and `--wait-interval` can be used to define the pause duration in seconds, between each complete crawling.
 
-``` bash
+```bash
 # Crawl the sitemap every 30 minutes
 $ docker run -it --rm aleravat/crowlet --forever --wait-interval 1800 https://foo.bar/sitemap.xml
 ```
@@ -70,7 +72,7 @@ $ docker run -it --rm aleravat/crowlet --forever --wait-interval 1800 https://fo
 
 If any page from the sitemap returns a non `200` status code, crowlet will return with exit code `1`. This can be used and customized to monitor the status of the pages, and automate error detection. The `--non-200-error` option allow setting the exit code if any page has a non `200` status code.
 
-``` bash
+```bash
 # Return with code `150` if any page has a status != 200
 docker run -it --rm aleravat/crowlet --non-200-error 150 https://foo.bar/sitemap.xml
 ```
@@ -88,7 +90,7 @@ The `--crawl-images`, `--crawl-hyperlinks` and `--crawl-external` options can be
 
 The `--response-time-max` option can be used to indicate a maximum server total time, or crowlet will return with `--response-time-error` return code. Note that if any page return a status code different from 200, the `--non-200-error` code will be returned instead.
 
-``` bash
+```bash
 # Return with code `5` if any page takes more than `1000`ms until reception
 # -t 1: Load pages one by one to avoid biased measurement
 docker run -it --rm aleravat/crowlet -t 1 -l 5 -m 1000 https://foo.bar/sitemap.xml
@@ -97,6 +99,7 @@ docker run -it --rm aleravat/crowlet -t 1 -l 5 -m 1000 https://foo.bar/sitemap.x
 ### Command line options
 
 The following arguments can be used to customize it to your needs:
+
 ```
 COMMANDS:
      help, h  Shows a list of commands or help for one command
