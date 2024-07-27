@@ -20,6 +20,13 @@ Run the sitemap crawler from its docker image directly
 docker run -it --rm aleravat/crowlet https://foo.bar/sitemap.xml
 ```
 
+Or install locally using Go 1.17 or higher:
+
+```
+GOBIN=/usr/local/bin go install github.com/Pixep/crowlet/cmd/crowlet@latest
+/usr/local/bin/crowlet https://foo.bar/sitemap.xml
+```
+
 Or build locally with `make build` and run.
 You can alternatively use `make build-static-linux` to build a self contained binary for Linux platforms.
 
