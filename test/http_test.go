@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"net/http"
 	"sort"
 	"sync"
 	"testing"
@@ -49,7 +50,7 @@ func TestRunConcurrentGet(t *testing.T) {
 	}
 }
 
-func mockHTTPGet(url string, config crawler.HTTPConfig) *crawler.HTTPResponse {
+func mockHTTPGet(client *http.Client, url string, config crawler.HTTPConfig) *crawler.HTTPResponse {
 	fetchedUrls = append(fetchedUrls, url)
 	waitMutex.Lock()
 	waitMutex.Unlock()
