@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -70,14 +69,20 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 
 	configureRequest(req, config)
 
-	client := http.Client{
-		Timeout: config.Timeout,
-	}
-
 	resp, err := client.Do(req)
 	response.EndTime = time.Now()
 	response.Response = resp
 	response.Result = result
+
+	defer func() {
+		if resp != nil {
+			if !config.ParseLinks {
+				io.Copy(io.Discard, resp.Body)
+			}
+			resp.Body.Close()
+		}
+		PrintResult(response)
+	}()
 
 	if resp == nil {
 		response.StatusCode = 0
@@ -85,14 +90,7 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 		response.StatusCode = response.Response.StatusCode
 	}
 
-	defer func() {
-		if resp != nil && !config.ParseLinks {
-			io.Copy(ioutil.Discard, resp.Body)
-			resp.Body.Close()
-		}
-		PrintResult(response)
-	}()
-
+	// HTTP client error, won't trigger for 4xx or 5xx
 	if err != nil {
 		log.Error(err)
 		response.Err = err
@@ -102,12 +100,13 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 	if config.ParseLinks {
 		currentURL, err := url.Parse(urlStr)
 		if err != nil {
+			log.Error("error parsing base URL:", err)
 			return
 		}
 
 		response.Links, err = ExtractLinks(resp.Body, *currentURL)
-		resp.Body.Close()
 		if err != nil {
+			log.Error("error extracting page links:", err)
 			return
 		}
 	}

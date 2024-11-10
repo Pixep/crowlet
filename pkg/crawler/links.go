@@ -22,7 +22,6 @@ const (
 // Link type holds information of URL links
 type Link struct {
 	Type       LinkType
-	Name       string
 	TargetURL  url.URL
 	IsExternal bool
 }
@@ -109,11 +108,9 @@ func extractImageLinks(doc *goquery.Document) (links []Link) {
 func extractLink(urlString string) *Link {
 	url, err := url.Parse(urlString)
 	if err != nil {
-		log.Error(err)
+		log.Error("Failed to parse page link '", urlString, "':", err)
 		return nil
 	}
 
-	return &Link{
-		Name:      "<a> link", //strings.TrimSpace(s.Text()),
-		TargetURL: *url}
+	return &Link{TargetURL: *url}
 }
