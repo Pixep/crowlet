@@ -33,7 +33,7 @@ type HTTPConfig struct {
 
 // HTTPGetter performs a single HTTP/S  to the url, and return information
 // related to the result as an HTTPResponse
-type HTTPGetter func(url string, config HTTPConfig) (response *HTTPResponse)
+type HTTPGetter func(client *http.Client, url string, config HTTPConfig) (response *HTTPResponse)
 
 func createRequest(url string) (*http.Request, *httpstat.Result, error) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -57,7 +57,7 @@ func configureRequest(req *http.Request, config HTTPConfig) {
 }
 
 // HTTPGet issues a GET request to a single URL and returns an HTTPResponse
-func HTTPGet(urlStr string, config HTTPConfig) (response *HTTPResponse) {
+func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *HTTPResponse) {
 	response = &HTTPResponse{
 		URL: urlStr,
 	}
@@ -142,8 +142,13 @@ func (getter *BaseConcurrentHTTPGetter) ConcurrentHTTPGet(urls []string, config 
 func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
 	maxConcurrent int, resultChan chan<- *HTTPResponse, quit <-chan struct{}) {
 
-	httpResources := make(chan int, maxConcurrent)
 	var wg sync.WaitGroup
+	clientsReady := make(chan *http.Client, maxConcurrent)
+	for i := 0; i < maxConcurrent; i++ {
+		clientsReady <- &http.Client{
+			Timeout: config.Timeout,
+		}
+	}
 
 	defer func() {
 		wg.Wait()
@@ -155,17 +160,17 @@ func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
 		case <-quit:
 			log.Info("Waiting for workers to finish...")
 			return
-		case httpResources <- 1:
+		case client := <-clientsReady:
 			wg.Add(1)
 
-			go func(url string) {
+			go func(client *http.Client, url string) {
 				defer func() {
-					<-httpResources
+					clientsReady <- client
 					wg.Done()
 				}()
 
-				resultChan <- httpGet(url, config)
-			}(url)
+				resultChan <- httpGet(client, url, config)
+			}(client, url)
 		}
 	}
 }
