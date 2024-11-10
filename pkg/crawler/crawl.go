@@ -122,6 +122,9 @@ func AsyncCrawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats 
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		config.Throttle = 1
 	}
+	if config.Host != "" {
+		urls = RewriteURLHost(urls, config.Host)
+	}
 
 	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
 		config.Links.CrawlImages
