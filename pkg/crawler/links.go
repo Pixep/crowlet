@@ -27,6 +27,21 @@ type Link struct {
 	IsExternal bool
 }
 
+// RewriteURLHost modifies a list of raw URL strings to point to a new host.
+func RewriteURLHost(urls []string, newHost string) []string {
+	rewrittenURLs := make([]string, 0, len(urls))
+	for _, rawURL := range urls {
+		url, err := url.Parse(rawURL)
+		if err != nil {
+			log.Error("error parsing URL:", err)
+			continue
+		}
+		url.Host = newHost
+		rewrittenURLs = append(rewrittenURLs, url.String())
+	}
+	return rewrittenURLs
+}
+
 // ExtractLinks returns links found in the html page provided and currentURL.
 // The URL is used to differentiate between internal and external links
 func ExtractLinks(htmlBody io.ReadCloser, currentURL url.URL) ([]Link, error) {

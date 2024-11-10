@@ -170,7 +170,7 @@ func main() {
 
 func addInterruptHandlers() chan struct{} {
 	stop := make(chan struct{})
-	osSignal := make(chan os.Signal)
+	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)
 	signal.Notify(osSignal, os.Interrupt, syscall.SIGINT)
 
