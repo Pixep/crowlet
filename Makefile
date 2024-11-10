@@ -20,7 +20,7 @@ build-static:: install-deps ## Builds a static binary
 				cmd/crowlet/crowlet.go
 
 test:: ## Run tests
-		@cd test && go test
+		@cd pkg/crawler && go test
 
 install:: ## Build and install crowlet locally
 		@cd cmd/crowlet/ && go install .
