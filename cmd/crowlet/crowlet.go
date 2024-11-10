@@ -230,7 +230,7 @@ func start(c *cli.Context) error {
 		HTTPGetter: &crawler.BaseConcurrentHTTPGetter{
 			Get: crawler.HTTPGet,
 		},
-		Links: crawler.CrawlLinksConfig{
+		Links: crawler.CrawlPageLinksConfig{
 			CrawlExternalLinks: c.Bool("crawl-external"),
 			CrawlImages:        c.Bool("crawl-images"),
 			CrawlHyperlinks:    c.Bool("crawl-hyperlinks"),
