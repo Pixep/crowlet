@@ -22,6 +22,9 @@ build-static:: install-deps ## Builds a static binary
 test:: ## Run tests
 		@cd pkg/crawler && go test
 
+benchmark:: ## Run benchmarks
+		@cd cmd/crowlet && go test -bench=. -benchtime=30x -benchmem
+
 install:: ## Build and install crowlet locally
 		@cd cmd/crowlet/ && go install .
 
