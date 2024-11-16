@@ -1,7 +1,8 @@
 IMAGE_NAME = crowlet
-IMAGE_VERSION = latest
+IMAGE_VERSION = 0.3.0
 IMAGE_ORG = aleravat
 IMAGE_TAG = $(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_VERSION)
+IMAGE_TAG_LATEST = $(IMAGE_ORG)/$(IMAGE_NAME):latest
 
 .DEFAULT_GOAL := build
 
@@ -41,7 +42,9 @@ docker-build:: ## Builds the docker image
 
 docker-push:: ## Pushes the docker image to the registry
 		@echo Pushing $(IMAGE_TAG)
+		@docker image tag $(IMAGE_TAG) $(IMAGE_TAG_LATEST)
 		@docker push $(IMAGE_TAG)
+		@docker push $(IMAGE_TAG_LATEST)
 
 docker-release:: docker-build docker-push ## Builds and pushes the docker image to the registry
 
