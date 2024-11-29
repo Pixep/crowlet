@@ -127,6 +127,9 @@ func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats Crawl
 	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
 		config.Links.CrawlImages
 	results, stats, server200TimeSum := crawlUrls(urls, config, quit)
+	for i := range stats.Non200Urls {
+		stats.Non200Urls[i].LinkingURLs = []string{"sitemap"}
+	}
 
 	if config.HTTP.ParseLinks {
 		_, pageLinksStats, linksServer200TimeSum := crawlPageLinks(results, config, quit)
