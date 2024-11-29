@@ -1,6 +1,8 @@
 package crawler
 
 import (
+	"net/url"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -124,6 +126,179 @@ func TestMergeCrawlStats(t *testing.T) {
 				if !slices.Equal(result.LinkingURLs, tt.expectedNon200[i].LinkingURLs) {
 					t.Fatalf("Non200Urls LinkingURLs mismatch at index %d: expected %v, got %v", i, tt.expectedNon200[i].LinkingURLs, result.LinkingURLs)
 				}
+			}
+		})
+	}
+}
+
+func Test_getLinksToCrawl(t *testing.T) {
+	type args struct {
+		sourceResults map[string]*HTTPResponse
+		sourceConfig  CrawlConfig
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string][]string
+	}{
+		{
+			name: "Hyperlinks disabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    false,
+						CrawlImages:        false,
+					},
+				},
+			},
+			want: map[string][]string{},
+		},
+		{
+			name: "Hyperlinks enabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    true,
+						CrawlImages:        false,
+					},
+				},
+			},
+			want: map[string][]string{
+				"//example.com/1": {"//example.com"},
+				"//example.com/2": {"//example.com"},
+			},
+		},
+		{
+			name: "External links disabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "external.com"}, IsExternal: true},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    true,
+						CrawlImages:        false,
+					},
+				},
+			},
+			want: map[string][]string{
+				"//example.com/1": {"//example.com"},
+				"//example.com/2": {"//example.com"},
+			},
+		},
+		{
+			name: "External links enabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "external.com"}, IsExternal: true},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: true,
+						CrawlHyperlinks:    true,
+						CrawlImages:        false,
+					},
+				},
+			},
+			want: map[string][]string{
+				"//example.com/1": {"//example.com"},
+				"//example.com/2": {"//example.com"},
+				"//external.com":  {"//example.com"},
+			},
+		},
+		{
+			name: "Images disabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+							{Type: Image, TargetURL: url.URL{Host: "example.com", Path: "/image.jpg"}, IsExternal: false},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    true,
+						CrawlImages:        false,
+					},
+				},
+			},
+			want: map[string][]string{
+				"//example.com/1": {"//example.com"},
+				"//example.com/2": {"//example.com"},
+			},
+		},
+		{
+			name: "Images enabled",
+			args: args{
+				sourceResults: map[string]*HTTPResponse{
+					"//example.com": {
+						URL: "//example.com",
+						Links: []Link{
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/1"}, IsExternal: false},
+							{Type: Hyperlink, TargetURL: url.URL{Host: "example.com", Path: "/2"}, IsExternal: false},
+							{Type: Image, TargetURL: url.URL{Host: "example.com", Path: "/image.jpg"}, IsExternal: false},
+						},
+					},
+				},
+				sourceConfig: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    true,
+						CrawlImages:        true,
+					},
+				},
+			},
+			want: map[string][]string{
+				"//example.com/1":         {"//example.com"},
+				"//example.com/2":         {"//example.com"},
+				"//example.com/image.jpg": {"//example.com"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getLinksToCrawl(tt.args.sourceResults, tt.args.sourceConfig); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getLinksToCrawl() = %v, want %v", got, tt.want)
 			}
 		})
 	}
