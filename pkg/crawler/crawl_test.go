@@ -303,3 +303,133 @@ func Test_getLinksToCrawl(t *testing.T) {
 		})
 	}
 }
+
+type RequestTime struct {
+	startTime time.Time
+}
+
+// Make RequestDuration implement the RequestTimer interface
+func (r *RequestTime) Total(endTime time.Time) time.Duration {
+	return endTime.Sub(r.startTime)
+}
+
+func Test_populateCrawlStats(t *testing.T) {
+	type args struct {
+		result *HTTPResponse
+		stats  *CrawlStats
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want *CrawlStats
+	}{
+		{
+			name: "first 200 status code",
+			args: args{
+				result: &HTTPResponse{
+					URL:        "http://example.com",
+					StatusCode: 200,
+					EndTime:    time.UnixMilli(11000),
+					Result: &RequestTime{
+						startTime: time.UnixMilli(10000),
+					},
+				},
+				stats: &CrawlStats{
+					StatusCodes: make(map[int]int),
+				},
+			},
+			want: &CrawlStats{
+				Total:          1,
+				StatusCodes:    map[int]int{200: 1},
+				Total200Time:   1000 * time.Millisecond,
+				Average200Time: 1000 * time.Millisecond,
+				Max200Time:     1000 * time.Millisecond,
+			},
+		},
+		{
+			name: "update with 200 status code",
+			args: args{
+				result: &HTTPResponse{
+					URL:        "http://example.com",
+					StatusCode: 200,
+					EndTime:    time.UnixMilli(10500),
+					Result: &RequestTime{
+						startTime: time.UnixMilli(10000),
+					},
+				},
+				stats: &CrawlStats{
+					Total:          1,
+					StatusCodes:    map[int]int{200: 1},
+					Total200Time:   1000 * time.Millisecond,
+					Average200Time: 1000 * time.Millisecond,
+					Max200Time:     1000 * time.Millisecond,
+				},
+			},
+			want: &CrawlStats{
+				Total:          2,
+				StatusCodes:    map[int]int{200: 2},
+				Total200Time:   1500 * time.Millisecond,
+				Average200Time: 750 * time.Millisecond,
+				Max200Time:     1000 * time.Millisecond,
+			},
+		},
+		{
+			name: "update with 200 status code with higher time",
+			args: args{
+				result: &HTTPResponse{
+					URL:        "http://example.com",
+					StatusCode: 200,
+					EndTime:    time.UnixMilli(12000),
+					Result: &RequestTime{
+						startTime: time.UnixMilli(10000),
+					},
+				},
+				stats: &CrawlStats{
+					Total:          1,
+					StatusCodes:    map[int]int{200: 1},
+					Total200Time:   1000 * time.Millisecond,
+					Average200Time: 1000 * time.Millisecond,
+					Max200Time:     2000 * time.Millisecond,
+				},
+			},
+			want: &CrawlStats{
+				Total:          2,
+				StatusCodes:    map[int]int{200: 2},
+				Total200Time:   3000 * time.Millisecond,
+				Average200Time: 1500 * time.Millisecond,
+				Max200Time:     2000 * time.Millisecond,
+			},
+		},
+		{
+			name: "update with 404 status code",
+			args: args{
+				result: &HTTPResponse{
+					URL:        "http://example.com",
+					StatusCode: 404,
+					EndTime:    time.UnixMilli(12000),
+					Result: &RequestTime{
+						startTime: time.UnixMilli(10000),
+					},
+				},
+				stats: &CrawlStats{
+					StatusCodes: make(map[int]int),
+					Non200Urls:  []CrawlResult{},
+				},
+			},
+			want: &CrawlStats{
+				Total:       1,
+				StatusCodes: map[int]int{404: 1},
+				Non200Urls:  []CrawlResult{{URL: "http://example.com", StatusCode: 404, Time: 2000 * time.Millisecond}},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			updateCrawlStats(tt.args.result, tt.args.stats)
+			if !reflect.DeepEqual(tt.args.stats, tt.want) {
+				t.Errorf("populateCrawlStats() = %v, want %v", tt.args.stats, tt.want)
+			}
+		})
+	}
+}

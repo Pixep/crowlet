@@ -23,6 +23,7 @@ type CrawlResult struct {
 type CrawlStats struct {
 	Total          int
 	StatusCodes    map[int]int
+	Total200Time   time.Duration
 	Average200Time time.Duration
 	Max200Time     time.Duration
 	Non200Urls     []CrawlResult
@@ -193,29 +194,31 @@ func crawlUrls(urls []string, config CrawlConfig, quit <-chan struct{}) (results
 	results = make(map[string]*HTTPResponse)
 	stats.StatusCodes = make(map[int]int)
 	for result := range resultsChan {
-		populateCrawlStats(result, &stats)
+		updateCrawlStats(result, &stats)
 		results[result.URL] = result
 	}
 	return
 }
 
-func populateCrawlStats(result *HTTPResponse, stats *CrawlStats) {
+func updateCrawlStats(result *HTTPResponse, stats *CrawlStats) {
 	stats.Total++
 
 	statusCode := result.StatusCode
-	serverTime := time.Duration(0)
+	totalTime := time.Duration(0)
 	if result.Result != nil {
-		serverTime = result.Result.Total(result.EndTime)
+		totalTime = result.Result.Total(result.EndTime)
 	}
 
 	stats.StatusCodes[statusCode]++
 
 	if statusCode == 200 {
-		stats.Max200Time = max(stats.Max200Time, serverTime)
+		stats.Max200Time = max(stats.Max200Time, totalTime)
+		stats.Total200Time += totalTime
+		stats.Average200Time = time.Duration(stats.Total200Time.Nanoseconds() / int64(stats.StatusCodes[200]))
 	} else {
 		stats.Non200Urls = append(stats.Non200Urls, CrawlResult{
 			URL:        result.URL,
-			Time:       serverTime,
+			Time:       totalTime,
 			StatusCode: statusCode,
 		})
 	}

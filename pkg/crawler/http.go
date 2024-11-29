@@ -11,10 +11,17 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
+// Declare interface compatible with httpstat.Result exposing
+// only the methods we need.
+type RequestTimer interface {
+	// Total returns the total time from start to the time passed as parameter.
+	Total(time.Time) time.Duration
+}
+
 // HTTPResponse holds information from a GET to a specific URL
 type HTTPResponse struct {
 	URL        string
-	Result     *httpstat.Result
+	Result     RequestTimer
 	StatusCode int
 	EndTime    time.Time
 	Err        error
@@ -79,7 +86,7 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 			}
 			resp.Body.Close()
 		}
-		PrintResult(response)
+		PrintResult(response, result)
 	}()
 
 	if resp == nil {
@@ -173,17 +180,17 @@ func RunConcurrentGet(httpGet HTTPGetter, urls []string, config HTTPConfig,
 }
 
 // PrintResult will print information relative to the HTTPResponse
-func PrintResult(result *HTTPResponse) {
+func PrintResult(result *HTTPResponse, stats *httpstat.Result) {
 	total := int(result.Result.Total(result.EndTime).Round(time.Millisecond) / time.Millisecond)
 
 	if log.GetLevel() == log.DebugLevel {
 		log.WithFields(log.Fields{
 			"status":  result.StatusCode,
-			"dns":     int(result.Result.DNSLookup / time.Millisecond),
-			"tcpconn": int(result.Result.TCPConnection / time.Millisecond),
-			"tls":     int(result.Result.TLSHandshake / time.Millisecond),
-			"server":  int(result.Result.ServerProcessing / time.Millisecond),
-			"content": int(result.Result.ContentTransfer(result.EndTime) / time.Millisecond),
+			"dns":     int(stats.DNSLookup / time.Millisecond),
+			"tcpconn": int(stats.TCPConnection / time.Millisecond),
+			"tls":     int(stats.TLSHandshake / time.Millisecond),
+			"server":  int(stats.ServerProcessing / time.Millisecond),
+			"content": int(stats.ContentTransfer(result.EndTime) / time.Millisecond),
 			"time":    total,
 			"close":   result.EndTime,
 		}).Debug("url=" + result.URL)

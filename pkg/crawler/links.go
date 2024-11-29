@@ -89,6 +89,7 @@ func extractImageLinks(doc *goquery.Document) (links []Link) {
 	doc.Find("img").Each(func(i int, s *goquery.Selection) {
 		targetURL, _ := s.Attr("src")
 
+		// Ignored embedded images
 		if strings.HasPrefix(targetURL, "data:") {
 			return
 		}
