@@ -113,11 +113,9 @@ func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
 	return
 }
 
-// AsyncCrawl crawls asynchronously URLs from a sitemap and prints related
-// information. Throttle is the maximum number of parallel HTTP requests.
-// Host overrides the hostname used in the sitemap if provided,
-// and user/pass are optional basic auth credentials
-func AsyncCrawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats CrawlStats, err error) {
+// Crawl crawls the provided URLs with the provided configuration and returns
+// the crawling results.
+func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats CrawlStats, err error) {
 	if config.Throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		config.Throttle = 1
