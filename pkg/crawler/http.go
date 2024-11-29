@@ -14,7 +14,6 @@ import (
 // HTTPResponse holds information from a GET to a specific URL
 type HTTPResponse struct {
 	URL        string
-	Response   *http.Response
 	Result     *httpstat.Result
 	StatusCode int
 	EndTime    time.Time
@@ -71,7 +70,6 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 
 	resp, err := client.Do(req)
 	response.EndTime = time.Now()
-	response.Response = resp
 	response.Result = result
 
 	defer func() {
@@ -87,7 +85,7 @@ func HTTPGet(client *http.Client, urlStr string, config HTTPConfig) (response *H
 	if resp == nil {
 		response.StatusCode = 0
 	} else {
-		response.StatusCode = response.Response.StatusCode
+		response.StatusCode = resp.StatusCode
 	}
 
 	// HTTP client error, won't trigger for 4xx or 5xx
