@@ -21,7 +21,8 @@ build-static:: install-deps ## Builds a static binary
 				cmd/crowlet/crowlet.go
 
 test:: ## Run tests
-		@cd pkg/crawler && go test
+		@cd pkg/crawler && go test -v
+		@cd cmd/crowlet && go test -v
 
 benchmark:: ## Run benchmarks
 		@cd cmd/crowlet && go test -bench=. -benchtime=30x -benchmem
