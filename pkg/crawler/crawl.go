@@ -126,15 +126,34 @@ func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats Crawl
 
 	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
 		config.Links.CrawlImages
-	results, stats, server200TimeSum := crawlUrls(urls, config, quit)
+	results, stats := crawlUrls(urls, config, quit)
 	for i := range stats.Non200Urls {
 		stats.Non200Urls[i].LinkingURLs = []string{"sitemap"}
 	}
 
 	if config.HTTP.ParseLinks {
-		_, pageLinksStats, linksServer200TimeSum := crawlPageLinks(results, config, quit)
-		stats = MergeCrawlStats(stats, pageLinksStats)
-		server200TimeSum += linksServer200TimeSum
+		linksToCrawl := getLinksToCrawl(results, config)
+		urls := make([]string, 0, len(linksToCrawl))
+		for url := range linksToCrawl {
+			urls = append(urls, url)
+		}
+
+		// Make exploration non-recursive by not collecting any more links.
+		linksConfig := config
+		linksConfig.HTTP.ParseLinks = false
+		linksConfig.Links = CrawlPageLinksConfig{
+			CrawlExternalLinks: false,
+			CrawlImages:        false,
+			CrawlHyperlinks:    false}
+
+		log.Info("Found ", len(urls), " relevant linked URL(s)")
+		_, linksStats := crawlUrls(urls, linksConfig, quit)
+
+		for i, linkResult := range linksStats.Non200Urls {
+			linkResult.LinkingURLs = linksToCrawl[linkResult.URL]
+			linksStats.Non200Urls[i] = linkResult
+		}
+		stats = MergeCrawlStats(stats, linksStats)
 	}
 
 	if stats.Total == 0 {
@@ -146,9 +165,8 @@ func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats Crawl
 	return
 }
 
-func crawlPageLinks(sourceResults map[string]*HTTPResponse, sourceConfig CrawlConfig, quit <-chan struct{}) (map[string]*HTTPResponse,
-	CrawlStats, time.Duration) {
-	linkedUrlsSet := make(map[string][]string)
+func getLinksToCrawl(sourceResults map[string]*HTTPResponse, sourceConfig CrawlConfig) map[string][]string {
+	urlsToCrawl := make(map[string][]string)
 	for _, result := range sourceResults {
 		for _, link := range result.Links {
 			if (!sourceConfig.Links.CrawlExternalLinks && link.IsExternal) ||
@@ -156,52 +174,32 @@ func crawlPageLinks(sourceResults map[string]*HTTPResponse, sourceConfig CrawlCo
 				(!sourceConfig.Links.CrawlImages && link.Type == Image) {
 				continue
 			}
-			// Skip if already present in sourceResults
+			// Skip if already crawled
 			if _, ok := sourceResults[link.TargetURL.String()]; ok {
 				continue
 			}
-			linkedUrlsSet[link.TargetURL.String()] = append(linkedUrlsSet[link.TargetURL.String()], result.URL)
+			urlsToCrawl[link.TargetURL.String()] = append(urlsToCrawl[link.TargetURL.String()], result.URL)
 		}
 	}
 
-	linkedUrls := make([]string, 0, len(linkedUrlsSet))
-	for url := range linkedUrlsSet {
-		linkedUrls = append(linkedUrls, url)
-	}
-
-	// Make exploration non-recursive by not collecting any more links.
-	linksConfig := sourceConfig
-	linksConfig.HTTP.ParseLinks = false
-	linksConfig.Links = CrawlPageLinksConfig{
-		CrawlExternalLinks: false,
-		CrawlImages:        false,
-		CrawlHyperlinks:    false}
-
-	log.Info("Found ", len(linkedUrls), " relevant linked URL(s)")
-	linksResults, linksStats, linksServer200TimeSum := crawlUrls(linkedUrls, linksConfig, quit)
-
-	for i, linkResult := range linksStats.Non200Urls {
-		linkResult.LinkingURLs = linkedUrlsSet[linkResult.URL]
-		linksStats.Non200Urls[i] = linkResult
-	}
-
-	return linksResults, linksStats, linksServer200TimeSum
+	return urlsToCrawl
 }
 
 func crawlUrls(urls []string, config CrawlConfig, quit <-chan struct{}) (results map[string]*HTTPResponse,
-	stats CrawlStats, server200TimeSum time.Duration) {
+	stats CrawlStats) {
+
+	resultsChan := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
 
 	results = make(map[string]*HTTPResponse)
 	stats.StatusCodes = make(map[int]int)
-	resultsChan := config.HTTPGetter.ConcurrentHTTPGet(urls, config.HTTP, config.Throttle, quit)
 	for result := range resultsChan {
-		populateCrawlStats(result, &stats, &server200TimeSum)
+		populateCrawlStats(result, &stats)
 		results[result.URL] = result
 	}
 	return
 }
 
-func populateCrawlStats(result *HTTPResponse, stats *CrawlStats, total200Time *time.Duration) {
+func populateCrawlStats(result *HTTPResponse, stats *CrawlStats) {
 	stats.Total++
 
 	statusCode := result.StatusCode
@@ -213,11 +211,7 @@ func populateCrawlStats(result *HTTPResponse, stats *CrawlStats, total200Time *t
 	stats.StatusCodes[statusCode]++
 
 	if statusCode == 200 {
-		*total200Time += serverTime
-
-		if serverTime > stats.Max200Time {
-			stats.Max200Time = serverTime
-		}
+		stats.Max200Time = max(stats.Max200Time, serverTime)
 	} else {
 		stats.Non200Urls = append(stats.Non200Urls, CrawlResult{
 			URL:        result.URL,
