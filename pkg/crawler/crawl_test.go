@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"slices"
 	"testing"
 	"time"
 )
@@ -14,6 +15,7 @@ func TestMergeCrawlStats(t *testing.T) {
 		expectedCodes  map[int]int
 		expectedAvg200 time.Duration
 		expectedMax200 time.Duration
+		expectedNon200 []CrawlResult
 	}{
 		{
 			name: "Basic merge with 200 and 404",
@@ -24,15 +26,21 @@ func TestMergeCrawlStats(t *testing.T) {
 				Max200Time:     2 * time.Second,
 			},
 			statsB: CrawlStats{
-				Total:          6,
-				StatusCodes:    map[int]int{200: 2, 404: 4},
+				Total:          4,
+				StatusCodes:    map[int]int{200: 2, 404: 2},
 				Average200Time: 7 * time.Second,
 				Max200Time:     9 * time.Second,
+				Non200Urls: []CrawlResult{
+					{URL: "http://example.com", StatusCode: 404, LinkingURLs: []string{"http://example.com/1"}},
+					{URL: "http://example.com/2", StatusCode: 404}},
 			},
-			expectedTotal:  16,
-			expectedCodes:  map[int]int{200: 12, 404: 4},
+			expectedTotal:  14,
+			expectedCodes:  map[int]int{200: 12, 404: 2},
 			expectedAvg200: 2 * time.Second,
 			expectedMax200: 9 * time.Second,
+			expectedNon200: []CrawlResult{
+				{URL: "http://example.com", StatusCode: 404, LinkingURLs: []string{"http://example.com/1"}},
+				{URL: "http://example.com/2", StatusCode: 404}},
 		},
 		{
 			name: "One empty stats input",
@@ -60,17 +68,24 @@ func TestMergeCrawlStats(t *testing.T) {
 				StatusCodes:    map[int]int{301: 3, 500: 5},
 				Average200Time: 0,
 				Max200Time:     0,
+				Non200Urls: []CrawlResult{
+					{URL: "http://example.com", StatusCode: 301}},
 			},
 			statsB: CrawlStats{
 				Total:          7,
 				StatusCodes:    map[int]int{200: 7},
 				Average200Time: 2 * time.Second,
 				Max200Time:     3 * time.Second,
+				Non200Urls: []CrawlResult{
+					{URL: "http://other.com", StatusCode: 500}},
 			},
 			expectedTotal:  15,
 			expectedCodes:  map[int]int{200: 7, 301: 3, 500: 5},
 			expectedAvg200: 2 * time.Second,
 			expectedMax200: 3 * time.Second,
+			expectedNon200: []CrawlResult{
+				{URL: "http://example.com", StatusCode: 301},
+				{URL: "http://other.com", StatusCode: 500}},
 		},
 	}
 
@@ -94,6 +109,21 @@ func TestMergeCrawlStats(t *testing.T) {
 
 			if stats.Max200Time != tt.expectedMax200 {
 				t.Fatalf("Max200Time mismatch: expected %v, got %v", tt.expectedMax200, stats.Max200Time)
+			}
+
+			if len(stats.Non200Urls) != len(tt.expectedNon200) {
+				t.Fatalf("Non200Urls length mismatch: expected %d, got %d", len(tt.expectedNon200), len(stats.Non200Urls))
+			}
+			for i, result := range stats.Non200Urls {
+				if result.URL != tt.expectedNon200[i].URL {
+					t.Fatalf("Non200Urls URL mismatch at index %d: expected %s, got %s", i, tt.expectedNon200[i].URL, result.URL)
+				}
+				if result.StatusCode != tt.expectedNon200[i].StatusCode {
+					t.Fatalf("Non200Urls StatusCode mismatch at index %d: expected %d, got %d", i, tt.expectedNon200[i].StatusCode, result.StatusCode)
+				}
+				if !slices.Equal(result.LinkingURLs, tt.expectedNon200[i].LinkingURLs) {
+					t.Fatalf("Non200Urls LinkingURLs mismatch at index %d: expected %v, got %v", i, tt.expectedNon200[i].LinkingURLs, result.LinkingURLs)
+				}
 			}
 		})
 	}

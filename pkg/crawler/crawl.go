@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"errors"
+	"maps"
 	"net/url"
 	"time"
 
@@ -45,34 +46,33 @@ type CrawlPageLinksConfig struct {
 
 // MergeCrawlStats merges two sets of crawling statistics together.
 func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
-	stats.StatusCodes = make(map[int]int)
-	stats.Total = statsA.Total + statsB.Total
-
-	if statsA.Max200Time > statsB.Max200Time {
-		stats.Max200Time = statsA.Max200Time
-	} else {
-		stats.Max200Time = statsB.Max200Time
+	if statsB.Total == 0 {
+		return statsA
+	} else if statsA.Total == 0 {
+		return statsB
 	}
 
-	if statsA.StatusCodes != nil {
-		for key, value := range statsA.StatusCodes {
-			stats.StatusCodes[key] = stats.StatusCodes[key] + value
-		}
+	stats.Total = statsA.Total + statsB.Total
+	stats.Max200Time = max(statsA.Max200Time, statsB.Max200Time)
+
+	if statsA.StatusCodes == nil {
+		stats.StatusCodes = make(map[int]int)
+	} else {
+		stats.StatusCodes = maps.Clone(statsA.StatusCodes)
 	}
 	if statsB.StatusCodes != nil {
-		for key, value := range statsB.StatusCodes {
-			stats.StatusCodes[key] = stats.StatusCodes[key] + value
+		for k, v := range statsB.StatusCodes {
+			stats.StatusCodes[k] += v
 		}
 	}
 
-	if statsA.Average200Time != 0 || statsB.Average200Time != 0 {
+	if stats.StatusCodes[200] != 0 {
 		total200ns := (statsA.Average200Time.Nanoseconds()*int64(statsA.StatusCodes[200]) +
 			statsB.Average200Time.Nanoseconds()*int64(statsB.StatusCodes[200]))
 		stats.Average200Time = time.Duration(total200ns/int64(stats.StatusCodes[200])) * time.Nanosecond
 	}
 
-	stats.Non200Urls = append(stats.Non200Urls, statsA.Non200Urls...)
-	stats.Non200Urls = append(stats.Non200Urls, statsB.Non200Urls...)
+	stats.Non200Urls = append(statsA.Non200Urls, statsB.Non200Urls...)
 
 	return
 }
@@ -134,11 +134,6 @@ func AsyncCrawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats 
 		_, pageLinksStats, linksServer200TimeSum := crawlPageLinks(results, config, quit)
 		stats = MergeCrawlStats(stats, pageLinksStats)
 		server200TimeSum += linksServer200TimeSum
-	}
-
-	total200 := stats.StatusCodes[200]
-	if total200 > 0 {
-		stats.Average200Time = server200TimeSum / time.Duration(total200)
 	}
 
 	if stats.Total == 0 {

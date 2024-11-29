@@ -1,6 +1,6 @@
 module github.com/Pixep/crowlet
 
-go 1.14
+go 1.21
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.3
