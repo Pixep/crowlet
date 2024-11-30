@@ -8,38 +8,42 @@ import (
 	"time"
 )
 
-func TestMergeCrawlStats(t *testing.T) {
+func Test_MergeCrawlStats(t *testing.T) {
 	tests := []struct {
-		name           string
-		statsA         CrawlStats
-		statsB         CrawlStats
-		expectedTotal  int
-		expectedCodes  map[int]int
-		expectedAvg200 time.Duration
-		expectedMax200 time.Duration
-		expectedNon200 []CrawlResult
+		name             string
+		statsA           CrawlStats
+		statsB           CrawlStats
+		expectedTotal    int
+		expectedCodes    map[int]int
+		expectedTotal200 time.Duration
+		expectedAvg200   time.Duration
+		expectedMax200   time.Duration
+		expectedNon200   []CrawlResult
 	}{
 		{
 			name: "Basic merge with 200 and 404",
 			statsA: CrawlStats{
 				Total:          10,
 				StatusCodes:    map[int]int{200: 10},
+				Total200Time:   10 * time.Second,
 				Average200Time: time.Second,
 				Max200Time:     2 * time.Second,
 			},
 			statsB: CrawlStats{
 				Total:          4,
 				StatusCodes:    map[int]int{200: 2, 404: 2},
+				Total200Time:   7 * time.Second,
 				Average200Time: 7 * time.Second,
 				Max200Time:     9 * time.Second,
 				Non200Urls: []CrawlResult{
 					{URL: "http://example.com", StatusCode: 404, LinkingURLs: []string{"http://example.com/1"}},
 					{URL: "http://example.com/2", StatusCode: 404}},
 			},
-			expectedTotal:  14,
-			expectedCodes:  map[int]int{200: 12, 404: 2},
-			expectedAvg200: 2 * time.Second,
-			expectedMax200: 9 * time.Second,
+			expectedTotal:    14,
+			expectedCodes:    map[int]int{200: 12, 404: 2},
+			expectedTotal200: 17 * time.Second,
+			expectedAvg200:   2 * time.Second,
+			expectedMax200:   9 * time.Second,
 			expectedNon200: []CrawlResult{
 				{URL: "http://example.com", StatusCode: 404, LinkingURLs: []string{"http://example.com/1"}},
 				{URL: "http://example.com/2", StatusCode: 404}},
@@ -49,25 +53,29 @@ func TestMergeCrawlStats(t *testing.T) {
 			statsA: CrawlStats{
 				Total:          0,
 				StatusCodes:    nil,
+				Total200Time:   0,
 				Average200Time: 0,
 				Max200Time:     0,
 			},
 			statsB: CrawlStats{
 				Total:          5,
 				StatusCodes:    map[int]int{200: 5},
+				Total200Time:   5 * time.Second,
 				Average200Time: 3 * time.Second,
 				Max200Time:     4 * time.Second,
 			},
-			expectedTotal:  5,
-			expectedCodes:  map[int]int{200: 5},
-			expectedAvg200: 3 * time.Second,
-			expectedMax200: 4 * time.Second,
+			expectedTotal:    5,
+			expectedCodes:    map[int]int{200: 5},
+			expectedTotal200: 5 * time.Second,
+			expectedAvg200:   3 * time.Second,
+			expectedMax200:   4 * time.Second,
 		},
 		{
 			name: "Disjoint status codes",
 			statsA: CrawlStats{
 				Total:          8,
 				StatusCodes:    map[int]int{301: 3, 500: 5},
+				Total200Time:   0,
 				Average200Time: 0,
 				Max200Time:     0,
 				Non200Urls: []CrawlResult{
@@ -76,15 +84,17 @@ func TestMergeCrawlStats(t *testing.T) {
 			statsB: CrawlStats{
 				Total:          7,
 				StatusCodes:    map[int]int{200: 7},
+				Total200Time:   14 * time.Second,
 				Average200Time: 2 * time.Second,
 				Max200Time:     3 * time.Second,
 				Non200Urls: []CrawlResult{
 					{URL: "http://other.com", StatusCode: 500}},
 			},
-			expectedTotal:  15,
-			expectedCodes:  map[int]int{200: 7, 301: 3, 500: 5},
-			expectedAvg200: 2 * time.Second,
-			expectedMax200: 3 * time.Second,
+			expectedTotal:    15,
+			expectedCodes:    map[int]int{200: 7, 301: 3, 500: 5},
+			expectedTotal200: 14 * time.Second,
+			expectedAvg200:   2 * time.Second,
+			expectedMax200:   3 * time.Second,
 			expectedNon200: []CrawlResult{
 				{URL: "http://example.com", StatusCode: 301},
 				{URL: "http://other.com", StatusCode: 500}},
@@ -429,6 +439,116 @@ func Test_populateCrawlStats(t *testing.T) {
 			updateCrawlStats(tt.args.result, tt.args.stats)
 			if !reflect.DeepEqual(tt.args.stats, tt.want) {
 				t.Errorf("populateCrawlStats() = %v, want %v", tt.args.stats, tt.want)
+			}
+		})
+	}
+}
+
+func TestCrawl(t *testing.T) {
+	type args struct {
+		crawler Crawler
+		urls    []string
+		config  CrawlConfig
+	}
+
+	var crawledUrls []string
+	mockCrawlHandler := func(urls []string, config CrawlConfig, quit <-chan struct{}) (map[string]*HTTPResponse, CrawlStats) {
+		crawledUrls = append(crawledUrls, urls...)
+		results := make(map[string]*HTTPResponse)
+		for _, u := range urls {
+			results[u] = &HTTPResponse{
+				URL:        u,
+				StatusCode: 200,
+				EndTime:    time.UnixMilli(1000),
+				Result: &RequestTime{
+					startTime: time.UnixMilli(0),
+				},
+				Links: []Link{
+					{Type: Hyperlink, TargetURL: url.URL{Scheme: "http", Host: "example.com", Path: ""}, IsExternal: false},
+					{Type: Hyperlink, TargetURL: url.URL{Scheme: "http", Host: "example.com", Path: "/2"}, IsExternal: false},
+					{Type: Hyperlink, TargetURL: url.URL{Scheme: "http", Host: "external.com", Path: ""}, IsExternal: true},
+				},
+			}
+		}
+		stats := CrawlStats{
+			Total:          len(urls),
+			Total200Time:   time.Duration(len(urls)) * time.Second,
+			Average200Time: time.Second,
+			Max200Time:     time.Second,
+			StatusCodes:    map[int]int{200: len(urls)},
+		}
+		return results, stats
+	}
+
+	tests := []struct {
+		name            string
+		args            args
+		wantStats       CrawlStats
+		wantErr         bool
+		wantCrawledUrls []string
+	}{
+		{
+			name: "basic test",
+			args: args{
+				crawler: Crawler{
+					crawlHanlder: mockCrawlHandler,
+					quit:         nil,
+				},
+				urls:   []string{"http://example.com", "http://example.com/1"},
+				config: CrawlConfig{},
+			},
+			wantStats: CrawlStats{
+				Total:          2,
+				Total200Time:   2 * time.Second,
+				Average200Time: time.Second,
+				Max200Time:     time.Second,
+				StatusCodes: map[int]int{
+					200: 2,
+				},
+			},
+			wantErr:         false,
+			wantCrawledUrls: []string{"http://example.com", "http://example.com/1"},
+		},
+		{
+			name: "crawl links",
+			args: args{
+				crawler: Crawler{
+					crawlHanlder: mockCrawlHandler,
+					quit:         nil,
+				},
+				urls: []string{"http://example.com", "http://example.com/1"},
+				config: CrawlConfig{
+					Links: CrawlPageLinksConfig{
+						CrawlExternalLinks: false,
+						CrawlHyperlinks:    true,
+						CrawlImages:        false,
+					}}},
+			wantStats: CrawlStats{
+				Total:          3,
+				Total200Time:   3 * time.Second,
+				Average200Time: time.Second,
+				Max200Time:     time.Second,
+				StatusCodes: map[int]int{
+					200: 3,
+				},
+			},
+			wantErr:         false,
+			wantCrawledUrls: []string{"http://example.com", "http://example.com/1", "http://example.com/2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			crawledUrls = make([]string, 0)
+			gotStats, err := Crawl(tt.args.crawler, tt.args.urls, tt.args.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Crawl() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(crawledUrls, tt.wantCrawledUrls) {
+				t.Errorf("Crawl() = %v, want %v", crawledUrls, tt.wantCrawledUrls)
+			}
+			if !reflect.DeepEqual(gotStats, tt.wantStats) {
+				t.Errorf("Crawl() = %v, want %v", gotStats, tt.wantStats)
 			}
 		})
 	}

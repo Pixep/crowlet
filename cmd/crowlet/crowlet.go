@@ -190,7 +190,8 @@ func runMainLoop(urls []string, config crawler.CrawlConfig, iterations int, fore
 		}
 
 		quit := addInterruptHandlers()
-		itStats, err := crawler.Crawl(urls, config, quit)
+		engine := *crawler.DefaultCrawler(quit)
+		itStats, err := crawler.Crawl(engine, urls, config)
 
 		stats = crawler.MergeCrawlStats(stats, itStats)
 

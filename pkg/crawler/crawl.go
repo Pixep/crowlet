@@ -45,6 +45,24 @@ type CrawlPageLinksConfig struct {
 	CrawlImages        bool
 }
 
+type CrawlHandler func(urls []string, config CrawlConfig, quit <-chan struct{}) (results map[string]*HTTPResponse, stats CrawlStats)
+
+type Crawler struct {
+	quit         <-chan struct{}
+	crawlHanlder CrawlHandler
+}
+
+func (c Crawler) Crawl(urls []string, config CrawlConfig) (results map[string]*HTTPResponse, stats CrawlStats) {
+	return c.crawlHanlder(urls, config, c.quit)
+}
+
+func DefaultCrawler(quit <-chan struct{}) *Crawler {
+	return &Crawler{
+		quit:         quit,
+		crawlHanlder: crawlUrls,
+	}
+}
+
 // MergeCrawlStats merges two sets of crawling statistics together.
 func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 	if statsB.Total == 0 {
@@ -54,6 +72,7 @@ func MergeCrawlStats(statsA, statsB CrawlStats) (stats CrawlStats) {
 	}
 
 	stats.Total = statsA.Total + statsB.Total
+	stats.Total200Time = statsA.Total200Time + statsB.Total200Time
 	stats.Max200Time = max(statsA.Max200Time, statsB.Max200Time)
 
 	if statsA.StatusCodes == nil {
@@ -116,7 +135,7 @@ func GetSitemapUrlsAsStrings(sitemapURL string) (urls []string, err error) {
 
 // Crawl crawls the provided URLs with the provided configuration and returns
 // the crawling results.
-func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats CrawlStats, err error) {
+func Crawl(crawler Crawler, urls []string, config CrawlConfig) (stats CrawlStats, err error) {
 	if config.Throttle <= 0 {
 		log.Warn("Invalid throttle value, defaulting to 1.")
 		config.Throttle = 1
@@ -127,14 +146,14 @@ func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats Crawl
 
 	config.HTTP.ParseLinks = config.Links.CrawlExternalLinks || config.Links.CrawlHyperlinks ||
 		config.Links.CrawlImages
-	results, stats := crawlUrls(urls, config, quit)
+	results, stats := crawler.Crawl(urls, config)
 	for i := range stats.Non200Urls {
 		stats.Non200Urls[i].LinkingURLs = []string{"sitemap"}
 	}
 
 	if config.HTTP.ParseLinks {
 		linksToCrawl := getLinksToCrawl(results, config)
-		urls := make([]string, 0, len(linksToCrawl))
+		urls = make([]string, 0, len(linksToCrawl))
 		for url := range linksToCrawl {
 			urls = append(urls, url)
 		}
@@ -148,7 +167,7 @@ func Crawl(urls []string, config CrawlConfig, quit <-chan struct{}) (stats Crawl
 			CrawlHyperlinks:    false}
 
 		log.Info("Found ", len(urls), " relevant linked URL(s)")
-		_, linksStats := crawlUrls(urls, linksConfig, quit)
+		_, linksStats := crawler.Crawl(urls, linksConfig)
 
 		for i, linkResult := range linksStats.Non200Urls {
 			linkResult.LinkingURLs = linksToCrawl[linkResult.URL]
@@ -176,10 +195,11 @@ func getLinksToCrawl(sourceResults map[string]*HTTPResponse, sourceConfig CrawlC
 				continue
 			}
 			// Skip if already crawled
-			if _, ok := sourceResults[link.TargetURL.String()]; ok {
+			linkUrl := link.TargetURL.String()
+			if _, ok := sourceResults[linkUrl]; ok {
 				continue
 			}
-			urlsToCrawl[link.TargetURL.String()] = append(urlsToCrawl[link.TargetURL.String()], result.URL)
+			urlsToCrawl[link.TargetURL.String()] = append(urlsToCrawl[linkUrl], result.URL)
 		}
 	}
 
